@@ -92,7 +92,7 @@
 - [x] T051 [Sec] Append-only permission audit log (FR-015) + named multi-token auth (FR-017); pin SDK exact version (2026-07-18: SDK pinned 0.1.77)
 - [x] T052 [Sec] Grants in session state + `revoke_grant` command (FR-016): protocol.ts, contract doc, Models.swift, iOS Settings grants UI (2026-07-18)
 - [x] T053 [Sec] SECURITY.md + threat model; CI `npm audit` gate; dependabot (npm + actions) (2026-07-18)
-- [x] T054 [US1] Actionable notifications (FR-019): category + Approve/Deny actions, risky = no Approve, notification-action → command forwarding, offline outbox flush on reconnect (2026-07-18; end-to-end behavior verified on device with T026)
+- [x] T054 [US1] Actionable notifications (FR-019): category + Approve/Deny actions, risky = no Approve, notification-action → command forwarding, offline outbox flush on reconnect (2026-07-18: implemented + compiles; notification-action behavior still needs on-device verification alongside T026)
 - [x] T055 [Setup] QR pairing (FR-020): server `--pair` QR emitter (pairHost/LAN detection) + iOS VisionKit scanner in Settings, `claudemicro://pair` parsing (2026-07-18: `npm run pair` renders QR live w/ Tailscale IP auto-detect; scan flow needs device camera)
 
 ## Dependencies & Execution Order
