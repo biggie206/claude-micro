@@ -3,6 +3,11 @@
 import SwiftUI
 import WatchKit
 
+extension PhoneLink.WatchPending {
+    /// Severity tint — mirrors PendingPermission.riskTint on the phone.
+    var riskTint: Color { risky ? .red : .orange }
+}
+
 struct WatchControlView: View {
     @ObservedObject var link = PhoneLink.shared
     @State private var crownDepth: Double = 2
@@ -27,6 +32,11 @@ struct WatchControlView: View {
             }
             .animation(.snappy(duration: 0.25), value: link.pending)
             .animation(.easeInOut(duration: 0.3), value: link.overall)
+            // If the pinned request resolves elsewhere (context update) while the dialog is
+            // open or armed, drop it — a stale value would re-present against the next pending.
+            .onChange(of: link.pending) { _, pending in
+                if let r = riskyToConfirm, !pending.contains(where: { $0.id == r.id }) { riskyToConfirm = nil }
+            }
             .focusable(true)
             .digitalCrownRotation(
                 $crownDepth, from: 0, through: 4, by: 1,
@@ -69,7 +79,7 @@ struct WatchControlView: View {
 
     private func pendingView(_ p: PhoneLink.WatchPending) -> some View {
         VStack(spacing: 6) {
-            Text(p.toolName).font(.headline).foregroundStyle(p.risky ? .red : .orange)
+            Text(p.toolName).font(.headline).foregroundStyle(p.riskTint)
             Text(p.summary).font(.system(size: 12, design: .monospaced)).lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack {
@@ -96,7 +106,7 @@ struct WatchControlView: View {
             if p.risky { Text("⚠ risky — Action button won't auto-approve").font(.system(size: 10)) }
         }
         .padding(8)
-        .background((p.risky ? Color.red : .orange).opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+        .background(p.riskTint.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
         .transition(.move(edge: .top).combined(with: .opacity))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(p.risky ? "Risky p" : "P")ermission request: \(p.toolName). \(p.summary)")

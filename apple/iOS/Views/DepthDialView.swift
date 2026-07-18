@@ -5,11 +5,11 @@ struct DepthDialView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var connection: ServerConnection
     /// Depth at gesture start — steps are computed against this anchor, not live state,
-    /// so one continuous drag walks the detents deterministically.
-    @State private var anchorDepth: Int?
+    /// so one continuous drag walks the detents deterministically. @GestureState (not
+    /// @State) so an interrupted/cancelled gesture can never leave a stale anchor behind.
+    @GestureState private var anchorDepth: Int?
 
     private var level: DepthLevel { DepthLevel(rawValue: state.activeSession?.depth ?? 2) ?? .standard }
-    private let detentHaptic = UISelectionFeedbackGenerator()
 
     var body: some View {
         HStack(spacing: 16) {
@@ -56,17 +56,15 @@ struct DepthDialView: View {
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 4)
+                .updating($anchorDepth) { _, anchor, _ in
+                    if anchor == nil { anchor = state.activeSession?.depth ?? 2 }
+                }
                 .onChanged { g in
-                    if anchorDepth == nil {
-                        anchorDepth = state.activeSession?.depth ?? 2
-                        detentHaptic.prepare()
-                    }
                     guard let anchor = anchorDepth else { return }
                     let target = max(0, min(4, anchor + Int(-g.translation.height / 34)))
                     setDepth(target, send: false)   // optimistic; server reconciles
                 }
                 .onEnded { _ in
-                    anchorDepth = nil
                     connection.send(.setDepth(sessionId: state.activeSession?.id, level: state.activeSession?.depth ?? 2))
                 })
     }
@@ -75,7 +73,7 @@ struct DepthDialView: View {
         if target != state.activeSession?.depth,
            let i = state.sessions.firstIndex(where: { $0.id == state.activeSession?.id }) {
             state.sessions[i].depth = target
-            detentHaptic.selectionChanged()   // one click per detent, like the hardware dial
+            Haptics.selection.selectionChanged()   // one click per detent, like the hardware dial
         }
         if send { connection.send(.setDepth(sessionId: state.activeSession?.id, level: target)) }
     }

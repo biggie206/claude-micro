@@ -33,6 +33,11 @@ struct ControlPadView: View {
         .padding()
         .animation(.snappy(duration: 0.25), value: state.activePending)
         .animation(.snappy(duration: 0.25), value: state.sessions.isEmpty)
+        // If the pinned request resolves elsewhere while the dialog is open (or armed),
+        // drop it — otherwise the stale value re-presents against the next pending item.
+        .onChange(of: state.pending) { _, pending in
+            if let r = riskyToConfirm, !pending.contains(where: { $0.id == r.id }) { riskyToConfirm = nil }
+        }
     }
 
     // MARK: status banner (RGB lighting analog)
@@ -94,7 +99,7 @@ struct ControlPadView: View {
             if state.connected, let p = state.projects.first {
                 Button {
                     connection.send(.createSession(projectId: p.id, depth: nil))
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Haptics.medium.impactOccurred()
                 } label: {
                     Label("New session in \(p.name)", systemImage: "plus")
                         .padding(.horizontal, 6)
@@ -152,19 +157,8 @@ struct ControlPadView: View {
                 if let p = state.projects.first { connection.send(.createSession(projectId: p.id, depth: nil)) }
             }
         }
-        // presenting: captures the request at tap time — the dialog can never rebind to a
-        // different pending request that arrives while it is open (Constitution V).
-        .confirmationDialog("Run risky tool?",
-                            isPresented: Binding(get: { riskyToConfirm != nil },
-                                                 set: { if !$0 { riskyToConfirm = nil } }),
-                            titleVisibility: .visible,
-                            presenting: riskyToConfirm) { req in
-            Button("Run \(req.toolName)", role: .destructive) {
-                connection.send(.approve(sessionId: req.sessionId, requestId: req.id, always: false))
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: { req in
-            Text(req.inputSummary)
+        .riskyApprovalDialog($riskyToConfirm) { req in
+            connection.send(.approve(sessionId: req.sessionId, requestId: req.id, always: false))
         }
     }
 
@@ -193,7 +187,7 @@ struct ControlPadView: View {
                 let dx = g.translation.width, dy = g.translation.height
                 let direction = abs(dx) > abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up")
                 connection.send(.skill(sessionId: state.activeSession?.id, direction: direction))
-                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                Haptics.rigid.impactOccurred()
                 withAnimation(.snappy) { skillFlash = direction }
                 Task { try? await Task.sleep(for: .milliseconds(450)); withAnimation { skillFlash = nil } }
             })
@@ -214,14 +208,14 @@ struct ControlPadView: View {
             .animation(.easeInOut(duration: 0.25), value: ptt.isRecording)
             .onLongPressGesture(minimumDuration: 0.15, maximumDistance: 60) {
                 // press began (perform fires after minimumDuration while still holding)
-                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                Haptics.heavy.impactOccurred()
                 ptt.start()
             } onPressingChanged: { pressing in
                 if !pressing, ptt.isRecording {
                     let text = ptt.stop()
                     if !text.isEmpty, let s = state.activeSession {
                         connection.send(.prompt(sessionId: s.id, text: text, source: "ptt"))
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        Haptics.notice.notificationOccurred(.success)
                     }
                 }
             }
@@ -252,7 +246,7 @@ struct MicroKey: View {
 
     var body: some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.light.impactOccurred()
             action()
         } label: {
             VStack(spacing: 6) {
@@ -290,28 +284,16 @@ struct PermissionCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Label(request.toolName, systemImage: request.risky ? "exclamationmark.triangle.fill" : "hand.raised.fill")
                 .font(.headline)
-                .foregroundStyle(request.risky ? .red : .orange)
+                .foregroundStyle(request.riskTint)
             Text(request.inputSummary).font(.system(.caption, design: .monospaced))
             HStack {
-                // Constitution V: risky requests need a distinct confirmation gesture.
-                // presenting: pins the dialog to the request captured at tap time so it
-                // cannot rebind if activePending changes while the dialog is open.
                 Button("Allow") {
                     if request.risky { riskyToConfirm = request }
                     else { connection.send(.approve(sessionId: request.sessionId, requestId: request.id, always: false)) }
                 }
                     .buttonStyle(.borderedProminent).tint(.green)
-                    .confirmationDialog("Run risky tool?",
-                                        isPresented: Binding(get: { riskyToConfirm != nil },
-                                                             set: { if !$0 { riskyToConfirm = nil } }),
-                                        titleVisibility: .visible,
-                                        presenting: riskyToConfirm) { req in
-                        Button("Run \(req.toolName)", role: .destructive) {
-                            connection.send(.approve(sessionId: req.sessionId, requestId: req.id, always: false))
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: { req in
-                        Text(req.inputSummary)
+                    .riskyApprovalDialog($riskyToConfirm) { req in
+                        connection.send(.approve(sessionId: req.sessionId, requestId: req.id, always: false))
                     }
                 Button("Always") { connection.send(.approve(sessionId: request.sessionId, requestId: request.id, always: true)) }
                     .buttonStyle(.bordered).disabled(request.risky)   // Constitution V
@@ -322,10 +304,43 @@ struct PermissionCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background((request.risky ? Color.red : .orange).opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder((request.risky ? Color.red : .orange).opacity(0.4), lineWidth: 1))
+        .background(request.riskTint.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(request.riskTint.opacity(0.4), lineWidth: 1))
         .frame(height: 118)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(request.risky ? "Risky p" : "P")ermission request: \(request.toolName). \(request.inputSummary)")
+        .onChange(of: state.pending) { _, pending in
+            if let r = riskyToConfirm, !pending.contains(where: { $0.id == r.id }) { riskyToConfirm = nil }
+        }
+    }
+}
+
+/// Shared, pre-warmed feedback generators — per-tap construction loses the prepare()
+/// latency benefit and allocates on every gesture.
+enum Haptics {
+    static let light = UIImpactFeedbackGenerator(style: .light)
+    static let medium = UIImpactFeedbackGenerator(style: .medium)
+    static let heavy = UIImpactFeedbackGenerator(style: .heavy)
+    static let rigid = UIImpactFeedbackGenerator(style: .rigid)
+    static let selection = UISelectionFeedbackGenerator()
+    static let notice = UINotificationFeedbackGenerator()
+}
+
+extension View {
+    /// Constitution V chokepoint: every risky approval on iOS confirms through this one
+    /// dialog, pinned via `presenting:` to the request captured at tap time so it can
+    /// never rebind to a different pending request while open.
+    func riskyApprovalDialog(_ item: Binding<PendingPermission?>,
+                             onConfirm: @escaping (PendingPermission) -> Void) -> some View {
+        confirmationDialog("Run risky tool?",
+                           isPresented: Binding(get: { item.wrappedValue != nil },
+                                                set: { if !$0 { item.wrappedValue = nil } }),
+                           titleVisibility: .visible,
+                           presenting: item.wrappedValue) { req in
+            Button("Run \(req.toolName)", role: .destructive) { onConfirm(req) }
+            Button("Cancel", role: .cancel) {}
+        } message: { req in
+            Text(req.inputSummary)
+        }
     }
 }

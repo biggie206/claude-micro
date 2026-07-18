@@ -45,6 +45,9 @@ struct PendingPermission: Codable, Identifiable, Equatable {
     let inputSummary: String
     let risky: Bool
     let requestedAt: String
+
+    /// Severity tint used consistently across card, border, and labels.
+    var riskTint: Color { risky ? .red : .orange }
 }
 
 struct Project: Codable, Identifiable, Equatable {

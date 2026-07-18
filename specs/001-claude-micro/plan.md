@@ -157,8 +157,14 @@ status back to idle.
     (generated dial motif) on both apps.
   - T048 security: git history verified secret-free; constant-time token compare;
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
-    suggests `0.0.0.0` bind. Open before public push: LICENSE choice, iOS token
-    UserDefaults→Keychain.
+    suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
+    (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - Review loop round 1 (8-angle small review): consolidated risky-approval dialog into
+    one `riskyApprovalDialog` chokepoint; watch pushes now gated by event relevance at
+    ServerConnection (relay throttle machinery deleted); stale `riskyToConfirm` pruned
+    when its request resolves elsewhere; depth-dial anchor moved to @GestureState;
+    shared pre-warmed haptic generators; `riskTint` semantic color; lastError cleared
+    on reconnect; Keychain migration verified-before-delete.
 
 ## Complexity Tracking
 

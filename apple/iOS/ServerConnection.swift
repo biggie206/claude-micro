@@ -49,12 +49,14 @@ final class ServerConnection: ObservableObject {
         self.state = state
         self.relay = relay
         relay.onCommand = { [weak self] cmd in self?.send(cmd) }   // watch → phone → server
-        // One-time migration from the pre-Keychain UserDefaults slot.
+        // One-time migration from the pre-Keychain UserDefaults slot. Only delete the
+        // legacy copy once the Keychain round-trips — SecItemAdd can fail silently
+        // (e.g. before first unlock) and the legacy slot is the sole durable copy.
         if token.isEmpty, let legacy = UserDefaults.standard.string(forKey: "serverToken") {
             token = legacy
             TokenStore.save(legacy)
         }
-        UserDefaults.standard.removeObject(forKey: "serverToken")
+        if TokenStore.load() != nil { UserDefaults.standard.removeObject(forKey: "serverToken") }
     }
 
     func connect() {
@@ -84,12 +86,17 @@ final class ServerConnection: ObservableObject {
                 case .failure(let error):
                     self.handleDrop(error)
                 case .success(let message):
+                    if self.reconnectAttempt > 0 { self.lastError = nil }   // recovered — drop stale drop-error
                     self.reconnectAttempt = 0
                     self.state.connected = true
                     if let data = Self.data(from: message),
                        let event = try? JSONDecoder().decode(ServerEvent.self, from: data) {
                         let haptic = self.state.apply(event)
-                        self.relay.pushState(self.state, haptic: haptic)
+                        // SC-005: only state transitions reach the watch — assistant_delta
+                        // fires per streamed token but never changes watch-visible state.
+                        if haptic != nil || Self.watchRelevant(event) {
+                            self.relay.pushState(self.state, haptic: haptic)
+                        }
                         if case let .serverError(code, message, _) = event {
                             self.lastError = "\(code): \(message)"
                         }
@@ -114,6 +121,13 @@ final class ServerConnection: ObservableObject {
         pingTimer?.invalidate()
         pingTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.send(.ping(t: Date().timeIntervalSince1970)) }
+        }
+    }
+
+    private static func watchRelevant(_ e: ServerEvent) -> Bool {
+        switch e {
+        case .snapshot, .sessionState, .permissionRequest, .permissionResolved, .turnResult: true
+        case .assistantDelta, .toolActivity, .serverError, .pong: false
         }
     }
 

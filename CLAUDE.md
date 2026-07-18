@@ -10,4 +10,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Rules
 
 - Spec-driven: update `specs/001-claude-micro/` before changing behavior.
+- After substantive changes: run a small code review (low/medium effort) and rework the
+  findings, then re-review once if anything was fixed — max 2 rounds, stop early when clean.
 - `specs/001-claude-micro/contracts/websocket-protocol.md` is normative together with `server/src/protocol.ts` — keep them in sync (and `apple/Shared/Models.swift` mirrors them).

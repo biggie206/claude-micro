@@ -86,7 +86,7 @@
 - [x] T045 Run /speckit.analyze; reconcile spec/plan/tasks drift; update Phase Log in plan.md (2026-07-18: 8 findings fixed — see plan.md Phase Log)
 - [ ] T046 Server restart recovery: re-list resumable sessions from `~/.claude/projects/` on boot as `idle (resumable)` (spec Edge Cases)
 - [x] T047 UI/UX + performance polish pass within existing FRs (FR-005/006/009): animations/haptics/empty states/accessibility on iOS pad + watch, ATS/local-network Info.plist keys, WatchConnectivity context throttling (SC-005), app icons (2026-07-18: done, both simulator builds green)
-- [x] T048 Pre-publication security review (repo going public): secrets scan incl. git history, auth/bind posture, LICENSE, docs accuracy (2026-07-18: history clean; hardened token compare/maxPayload/ws error handling; quickstart 0.0.0.0 guidance fixed; LICENSE + Keychain migration still open — see roadmap)
+- [x] T048 Pre-publication security review (repo going public): secrets scan incl. git history, auth/bind posture, LICENSE, docs accuracy (2026-07-18: history clean; hardened token compare/maxPayload/ws error handling; quickstart 0.0.0.0 guidance fixed; MIT LICENSE added; iOS token moved to Keychain with verified-before-delete migration)
 
 ## Dependencies & Execution Order
 
