@@ -21,6 +21,9 @@ targets:
         UILaunchScreen: {}
         NSMicrophoneUsageDescription: "Push-to-talk voice prompts for your Claude sessions."
         NSSpeechRecognitionUsageDescription: "Transcribes your voice prompts on-device before sending them to your Mac."
+        NSLocalNetworkUsageDescription: "Connects to the Claude Micro companion server running on your Mac."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UIBackgroundModes: [audio]
     dependencies:
       - target: ClaudeMicroWatch
@@ -28,6 +31,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomnguyen.claudemicro.app
         TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   ClaudeMicroWatch:
     type: application
@@ -36,6 +40,7 @@ targets:
     info:
       path: WatchApp/Info.plist
       properties:
+        WKApplication: true
         WKCompanionAppBundleIdentifier: com.tomnguyen.claudemicro.app
         WKRunsIndependentlyOfCompanionApp: false
     dependencies:
@@ -43,6 +48,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tomnguyen.claudemicro.app.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   ClaudeMicroWatchWidget:
     type: app-extension

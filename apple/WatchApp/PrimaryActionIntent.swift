@@ -16,7 +16,7 @@ struct PrimaryActionIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let link = PhoneLink.shared
 
-        if let pending = link.oldestPending {
+        if let pending = link.actionButtonPending {
             guard !pending.risky else {
                 // Constitution V: destructive tools need a deliberate on-screen gesture.
                 WKInterfaceDevice.current().play(.failure)
@@ -24,6 +24,14 @@ struct PrimaryActionIntent: AppIntent {
             }
             link.approve(pending)
             return .result(dialog: "Approved \(pending.toolName).")
+        }
+
+        // Spec Edge Cases: the Action button only resolves the active session's pending.
+        // If another session's request is what the screen is showing, say so instead of
+        // silently opening dictation while a visible card waits.
+        if link.oldestPending != nil {
+            WKInterfaceDevice.current().play(.notification)
+            return .result(dialog: "Pending on another session — confirm on screen.")
         }
 
         // No pending gate → signal the UI to open dictation (WatchControlView observes this).

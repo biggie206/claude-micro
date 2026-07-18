@@ -10,6 +10,12 @@ final class WatchRelay: NSObject, WCSessionDelegate {
     /// Set by ServerConnection: forwards watch commands to the server.
     var onCommand: (@MainActor (ClientCommand) -> Void)?
 
+    /// SC-005 battery budget: significant changes (status/pending/depth/active/stale) push
+    /// immediately; snippet-only churn from streamed tokens coalesces to ≤1 push/sec.
+    private var lastSignificantKey = ""
+    private var queuedContext: [String: Any]?
+    private var coalesceTimer: Timer?
+
     override init() {
         super.init()
         guard WCSession.isSupported() else { return }
@@ -29,7 +35,30 @@ final class WatchRelay: NSObject, WCSessionDelegate {
             "sessions": state.sessions.map { ["id": $0.id, "projectId": $0.projectId, "status": $0.status.rawValue, "depth": $0.depth, "snippet": $0.lastSnippet] },
             "pending": state.pending.map { ["id": $0.id, "sessionId": $0.sessionId, "toolName": $0.toolName, "summary": $0.inputSummary, "risky": $0.risky] },
         ]
-        try? WCSession.default.updateApplicationContext(context)
+
+        let significantKey = [
+            String(state.stale), state.activeSessionId ?? "", state.overallStatus.rawValue,
+            state.sessions.map { "\($0.id):\($0.status.rawValue):\($0.depth):\($0.active)" }.joined(separator: "|"),
+            state.pending.map(\.id).joined(separator: "|"),
+        ].joined(separator: "§")
+
+        if haptic != nil || significantKey != lastSignificantKey {
+            lastSignificantKey = significantKey
+            coalesceTimer?.invalidate()
+            queuedContext = nil
+            try? WCSession.default.updateApplicationContext(context)
+        } else {
+            queuedContext = context
+            if coalesceTimer?.isValid != true {
+                coalesceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+                    Task { @MainActor in
+                        guard let self, let queued = self.queuedContext else { return }
+                        self.queuedContext = nil
+                        try? WCSession.default.updateApplicationContext(queued)
+                    }
+                }
+            }
+        }
 
         if let haptic {
             if WCSession.default.isReachable {

@@ -4,43 +4,79 @@ import SwiftUI
 struct DepthDialView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var connection: ServerConnection
-    @State private var dragAccumulator: CGFloat = 0
+    /// Depth at gesture start — steps are computed against this anchor, not live state,
+    /// so one continuous drag walks the detents deterministically.
+    @State private var anchorDepth: Int?
 
     private var level: DepthLevel { DepthLevel(rawValue: state.activeSession?.depth ?? 2) ?? .standard }
+    private let detentHaptic = UISelectionFeedbackGenerator()
 
     var body: some View {
         HStack(spacing: 16) {
-            ZStack {
-                Circle().stroke(.white.opacity(0.15), lineWidth: 8).frame(width: 74, height: 74)
-                Circle()
-                    .trim(from: 0, to: CGFloat(level.rawValue + 1) / 5)
-                    .stroke(Color.purple, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: 74, height: 74)
-                Text("\(level.rawValue)").font(.title2.bold())
-            }
-            .gesture(
-                DragGesture(minimumDistance: 4)
-                    .onChanged { g in
-                        dragAccumulator += g.translation.height - dragAccumulator
-                        let step = Int(-g.translation.height / 34)
-                        let target = max(0, min(4, (state.activeSession?.depth ?? 2) + step))
-                        if target != state.activeSession?.depth, let i = state.sessions.firstIndex(where: { $0.id == state.activeSession?.id }) {
-                            state.sessions[i].depth = target   // optimistic; server reconciles
-                        }
-                    }
-                    .onEnded { _ in
-                        dragAccumulator = 0
-                        connection.send(.setDepth(sessionId: state.activeSession?.id, level: state.activeSession?.depth ?? 2))
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    })
-
+            dial
             VStack(alignment: .leading, spacing: 2) {
                 Text("THINKING DEPTH").font(.caption2.bold()).tracking(1.2).foregroundStyle(.secondary)
                 Text(level.label).font(.headline)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: level)
                 Text("applies to next turn").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer()
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Thinking depth: \(level.label)")
+        .accessibilityAdjustableAction { direction in
+            let next = max(0, min(4, level.rawValue + (direction == .increment ? 1 : -1)))
+            setDepth(next, send: true)
+        }
+    }
+
+    private var dial: some View {
+        ZStack {
+            Circle().stroke(.white.opacity(0.15), lineWidth: 8).frame(width: 74, height: 74)
+            // detent tick marks
+            ForEach(0..<5) { i in
+                Capsule()
+                    .fill(i <= level.rawValue ? Color.purple : .white.opacity(0.25))
+                    .frame(width: 3, height: 8)
+                    .offset(y: -45)
+                    .rotationEffect(.degrees(Double(i) * 72 - 144))
+            }
+            Circle()
+                .trim(from: 0, to: CGFloat(level.rawValue + 1) / 5)
+                .stroke(Color.purple, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 74, height: 74)
+                .animation(.snappy(duration: 0.25), value: level)
+            Text("\(level.rawValue)").font(.title2.bold())
+                .contentTransition(.numericText())
+                .animation(.snappy, value: level)
+        }
+        .frame(width: 98, height: 98)
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { g in
+                    if anchorDepth == nil {
+                        anchorDepth = state.activeSession?.depth ?? 2
+                        detentHaptic.prepare()
+                    }
+                    guard let anchor = anchorDepth else { return }
+                    let target = max(0, min(4, anchor + Int(-g.translation.height / 34)))
+                    setDepth(target, send: false)   // optimistic; server reconciles
+                }
+                .onEnded { _ in
+                    anchorDepth = nil
+                    connection.send(.setDepth(sessionId: state.activeSession?.id, level: state.activeSession?.depth ?? 2))
+                })
+    }
+
+    private func setDepth(_ target: Int, send: Bool) {
+        if target != state.activeSession?.depth,
+           let i = state.sessions.firstIndex(where: { $0.id == state.activeSession?.id }) {
+            state.sessions[i].depth = target
+            detentHaptic.selectionChanged()   // one click per detent, like the hardware dial
+        }
+        if send { connection.send(.setDepth(sessionId: state.activeSession?.id, level: target)) }
     }
 }

@@ -31,6 +31,7 @@ struct ClaudeMicroApp: App {
                 connection.connect()
             }
             .preferredColorScheme(.dark)
+            .tint(.purple)
         }
     }
 }
@@ -46,7 +47,12 @@ struct SettingsView: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 SecureField("Token", text: $connection.token)
                 Button("Connect") { connection.connect() }
-                LabeledContent("Status", value: state.connected ? "Connected" : "Disconnected")
+                LabeledContent("Status") {
+                    HStack(spacing: 6) {
+                        Circle().fill(state.connected ? .green : .red).frame(width: 8, height: 8)
+                        Text(state.connected ? "Connected" : "Disconnected")
+                    }
+                }
                 if let err = connection.lastError { Text(err).font(.caption).foregroundStyle(.red) }
             }
             Section {

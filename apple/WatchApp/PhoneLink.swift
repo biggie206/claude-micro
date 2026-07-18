@@ -27,6 +27,11 @@ final class PhoneLink: NSObject, ObservableObject {
         pending.first { $0.sessionId == activeSessionId } ?? pending.first
     }
 
+    /// Action-button scope (spec Edge Cases): oldest pending for the *active* session only.
+    var actionButtonPending: WatchPending? {
+        pending.first { $0.sessionId == activeSessionId }
+    }
+
     override private init() {
         super.init()
         guard WCSession.isSupported() else { return }

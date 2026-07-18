@@ -10,6 +10,7 @@ struct WatchControlView: View {
     /// Set by PrimaryActionIntent when the Action button is pressed with nothing pending.
     /// SwiftUI can't launch dictation programmatically, so we pulse the Speak button instead.
     @State private var highlightSpeak = false
+    @State private var riskyToConfirm: PhoneLink.WatchPending?
 
     var body: some View {
         NavigationStack {
@@ -24,6 +25,8 @@ struct WatchControlView: View {
 
                 depthRow
             }
+            .animation(.snappy(duration: 0.25), value: link.pending)
+            .animation(.easeInOut(duration: 0.3), value: link.overall)
             .focusable(true)
             .digitalCrownRotation(
                 $crownDepth, from: 0, through: 4, by: 1,
@@ -68,14 +71,35 @@ struct WatchControlView: View {
         VStack(spacing: 6) {
             Text(p.toolName).font(.headline).foregroundStyle(p.risky ? .red : .orange)
             Text(p.summary).font(.system(size: 12, design: .monospaced)).lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             HStack {
-                Button { link.approve(p) } label: { Image(systemName: "checkmark").bold() }
+                // Constitution V: risky requests need a distinct confirmation gesture.
+                // presenting: pins the dialog to the request captured at tap time so a
+                // context update replacing oldestPending cannot rebind the confirm action.
+                Button {
+                    if p.risky { riskyToConfirm = p } else { link.approve(p) }
+                } label: { Image(systemName: "checkmark").bold() }
                     .tint(.green)
+                    .confirmationDialog("Run risky tool?",
+                                        isPresented: Binding(get: { riskyToConfirm != nil },
+                                                             set: { if !$0 { riskyToConfirm = nil } }),
+                                        titleVisibility: .visible,
+                                        presenting: riskyToConfirm) { req in
+                        Button("Run \(req.toolName)", role: .destructive) { link.approve(req) }
+                        Button("Cancel", role: .cancel) {}
+                    } message: { req in
+                        Text(req.summary)
+                    }
                 Button { link.deny(p) } label: { Image(systemName: "xmark").bold() }
                     .tint(.red)
             }
             if p.risky { Text("⚠ risky — Action button won't auto-approve").font(.system(size: 10)) }
         }
+        .padding(8)
+        .background((p.risky ? Color.red : .orange).opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(p.risky ? "Risky p" : "P")ermission request: \(p.toolName). \(p.summary)")
     }
 
     private var idleControls: some View {

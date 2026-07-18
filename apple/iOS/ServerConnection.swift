@@ -1,6 +1,36 @@
 // WebSocket client to the Mac companion server, with reconnect + snapshot handling.
 import Foundation
+import Security
 import UIKit
+
+/// Keychain-backed storage for the pairing token (Constitution: clients hold only the
+/// pairing token — and it should not sit in plaintext UserDefaults).
+enum TokenStore {
+    private static let baseQuery: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "com.tomnguyen.claudemicro",
+        kSecAttrAccount as String: "server-token",
+    ]
+
+    static func load() -> String? {
+        var q = baseQuery
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
+              let data = out as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func save(_ token: String) {
+        SecItemDelete(baseQuery as CFDictionary)
+        guard !token.isEmpty else { return }
+        var q = baseQuery
+        q[kSecValueData as String] = Data(token.utf8)
+        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(q as CFDictionary, nil)
+    }
+}
 
 @MainActor
 final class ServerConnection: ObservableObject {
@@ -13,18 +43,24 @@ final class ServerConnection: ObservableObject {
     private var pingTimer: Timer?
 
     @Published var serverURL: String = UserDefaults.standard.string(forKey: "serverURL") ?? "ws://192.168.1.10:8787/ws"
-    @Published var token: String = UserDefaults.standard.string(forKey: "serverToken") ?? ""
+    @Published var token: String = TokenStore.load() ?? ""
 
     init(state: AppState, relay: WatchRelay) {
         self.state = state
         self.relay = relay
         relay.onCommand = { [weak self] cmd in self?.send(cmd) }   // watch → phone → server
+        // One-time migration from the pre-Keychain UserDefaults slot.
+        if token.isEmpty, let legacy = UserDefaults.standard.string(forKey: "serverToken") {
+            token = legacy
+            TokenStore.save(legacy)
+        }
+        UserDefaults.standard.removeObject(forKey: "serverToken")
     }
 
     func connect() {
         guard let url = URL(string: serverURL) else { lastError = "Bad server URL"; return }
         UserDefaults.standard.set(serverURL, forKey: "serverURL")
-        UserDefaults.standard.set(token, forKey: "serverToken")
+        TokenStore.save(token)
         task?.cancel(with: .goingAway, reason: nil)
         let task = URLSession.shared.webSocketTask(with: url)
         self.task = task
