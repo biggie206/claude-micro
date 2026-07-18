@@ -30,4 +30,15 @@ if (pairFlag !== -1) {
   process.exit(0);
 }
 
-startServer(config);
+const server = startServer(config);
+
+// FR-021: interrupt running turns and notify clients before dying.
+let stopping = false;
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    if (stopping) process.exit(1); // second signal: force
+    stopping = true;
+    console.log(`\n${signal} — shutting down gracefully…`);
+    void server.shutdown().then(() => process.exit(0));
+  });
+}

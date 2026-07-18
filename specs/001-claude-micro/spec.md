@@ -226,6 +226,11 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
 - **FR-020**: The server MUST be able to emit a pairing QR code (`--pair` /
   `npm run pair`) encoding `claudemicro://pair?url=…&token=…`, and the iPhone app MUST
   be able to scan it to configure the connection — replacing manual URL/token entry.
+- **FR-021**: Liveness & lifecycle: the server MUST ping connected sockets and cull
+  peers that miss a pong (no zombie broadcasts); on SIGINT/SIGTERM it MUST interrupt
+  running turns, notify clients (`shutting_down`), and close sockets cleanly; on boot
+  it MUST re-list resumable sessions from the SDK's on-disk transcripts as idle
+  resumable sessions (spec Edge Cases; capped per project).
 
 ### Key Entities
 

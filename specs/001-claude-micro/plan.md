@@ -159,6 +159,10 @@ status back to idle.
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
     suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
     (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - Robustness pass (FR-021, T046/T056): boot-time re-listing of resumable on-disk
+    sessions (idle "(resumable)", capped/project, next prompt resumes with context),
+    server-side heartbeat culling dead sockets, SIGINT/SIGTERM graceful shutdown
+    (interrupt turns → `shutting_down` notice → 1001 close). 41 server tests.
   - UX pass 2 (FR-019/020, T054/T055): actionable needs-input notifications (Approve
     requires device auth; risky requests carry no Approve action and route to the in-app
     confirmation), client outbox retry over reconnect, QR pairing (`npm run pair`

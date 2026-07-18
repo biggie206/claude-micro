@@ -59,6 +59,16 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
     this.depth = depth;
   }
 
+  /** FR-021: rebuild a session around an on-disk SDK transcript — idle until the next
+   *  prompt, which resumes with full context. Marked "(resumable)" per spec Edge Cases. */
+  static resumed(projectId: string, cwd: string, depth: DepthLevel, sdkSessionId: string, permissionTimeoutMs: number | null = null): MicroSession {
+    const s = new MicroSession(projectId, cwd, depth, permissionTimeoutMs);
+    s.id = sdkSessionId;
+    s.sdkSessionId = sdkSessionId;
+    s.lastSnippet = "(resumable)";
+    return s;
+  }
+
   toShape(): SessionShape {
     return {
       id: this.id, projectId: this.projectId, cwd: this.cwd, status: this.status,

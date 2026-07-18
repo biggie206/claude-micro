@@ -22,6 +22,17 @@ export class SessionManager {
     return session;
   }
 
+  /** FR-021: register an on-disk resumable session (idle; not made active). */
+  restore(projectId: string, sdkSessionId: string): MicroSession | null {
+    const project = this.projects.find((p) => p.id === projectId);
+    if (!project || this.sessions.has(sdkSessionId)) return null;
+    const session = MicroSession.resumed(project.id, project.cwd, this.defaultDepth, sdkSessionId, this.permissionTimeoutMs);
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  get activeSessionId(): string | null { return this.activeId; }
+
   get(sessionId: string): MicroSession | undefined {
     const direct = this.sessions.get(sessionId);
     if (direct) return direct;

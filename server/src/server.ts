@@ -6,6 +6,7 @@ import { createServer, type IncomingMessage } from "node:http";
 import { isIP } from "node:net";
 import { WebSocketServer, WebSocket } from "ws";
 import { ClientCommand, event, PROTOCOL_VERSION, type ServerEvent } from "./protocol.js";
+import { discoverResumable } from "./resume.js";
 import { SessionManager } from "./session-manager.js";
 import type { MicroSession, ResolutionAudit } from "./session.js";
 
@@ -23,6 +24,11 @@ export interface Config {
   allowedHosts?: string[];
   /** Host advertised in the pairing QR (default: auto-detected Tailscale/LAN IPv4). */
   pairHost?: string;
+  /** FR-021: re-list resumable sessions from disk on boot (default true, 3/project). */
+  resumeSessions?: boolean;
+  resumeLimit?: number;
+  /** FR-021: server-side ping interval for dead-socket culling (default 30s). */
+  heartbeatMs?: number;
   /** Test hooks; production defaults apply when omitted. */
   handshakeTimeoutMs?: number;
   maxUnauthedSockets?: number;
@@ -71,7 +77,7 @@ export function upgradeAllowed(req: IncomingMessage, allowedHosts: string[]): bo
   return host === "localhost" || isIP(host) !== 0 || allowedHosts.includes(host);
 }
 
-export function startServer(config: Config): { close: () => Promise<void>; port: () => number; ready: Promise<void> } {
+export function startServer(config: Config): { close: () => Promise<void>; shutdown: () => Promise<void>; port: () => number; ready: Promise<void> } {
   const configError = validateConfig(config);
   if (configError) throw new Error(`Refusing to start: ${configError}`);
 
@@ -111,13 +117,38 @@ export function startServer(config: Config): { close: () => Promise<void>; port:
       broadcast({ v: 1, type: "turn_result", sessionId: session.id, subtype, costUSD, durationMs, summary }));
   }
 
+  // FR-021 / T046: surface resumable on-disk sessions as idle; next prompt resumes them.
+  if (config.resumeSessions !== false) {
+    for (const project of config.projects) {
+      for (const { sessionId } of discoverResumable(project.cwd, config.resumeLimit ?? 3)) {
+        const session = manager.restore(project.id, sessionId);
+        if (session) wireSession(session);
+      }
+    }
+    const all = manager.all();
+    if (all.length > 0 && !manager.activeSessionId) manager.setActive(all[0].id);
+  }
+
   const http = createServer((_req, res) => { res.writeHead(200); res.end("claude-micro ok\n"); });
   // maxPayload: unauthenticated peers must not be able to buffer huge frames (default is 100 MiB).
   const wss = new WebSocketServer({ server: http, path: "/ws", maxPayload: 1024 * 1024 });
   wss.on("error", (err) => console.error("wss error:", err.message));
 
+  // FR-021: cull peers that miss a protocol-level pong so broadcasts never spray zombies.
+  const liveness = new WeakMap<WebSocket, boolean>();
+  const heartbeat = setInterval(() => {
+    for (const ws of wss.clients) {
+      if (liveness.get(ws) === false) { ws.terminate(); continue; }
+      liveness.set(ws, false);
+      ws.ping();
+    }
+  }, config.heartbeatMs ?? 30_000);
+  heartbeat.unref?.();
+
   wss.on("connection", (ws, req) => {
     ws.on("error", () => ws.close()); // a socket error must never crash the server
+    liveness.set(ws, true);
+    ws.on("pong", () => liveness.set(ws, true));
 
     if (!upgradeAllowed(req, allowedHosts)) return ws.close(4403, "forbidden origin/host");
 
@@ -249,16 +280,27 @@ export function startServer(config: Config): { close: () => Promise<void>; port:
     });
   });
 
+  const close = () =>
+    new Promise<void>((resolve) => {
+      clearInterval(heartbeat);
+      for (const ws of wss.clients) ws.terminate();
+      wss.close(() => http.close(() => resolve()));
+    });
+
   return {
     ready,
     port: () => {
       const addr = http.address();
       return typeof addr === "object" && addr ? addr.port : config.port;
     },
-    close: () =>
-      new Promise<void>((resolve) => {
-        for (const ws of wss.clients) ws.terminate();
-        wss.close(() => http.close(() => resolve()));
-      }),
+    close,
+    /** FR-021: interrupt running turns, tell clients, and close cleanly. */
+    shutdown: async () => {
+      broadcast({ v: 1, type: "error", code: "shutting_down", message: "companion server stopping" });
+      await Promise.allSettled(manager.all().map((s) => s.interrupt()));
+      for (const ws of wss.clients) ws.close(1001, "server shutting down");
+      await new Promise((r) => setTimeout(r, 100)); // let close frames flush
+      await close();
+    },
   };
 }

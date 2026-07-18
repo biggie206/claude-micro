@@ -52,11 +52,13 @@ config (see research.md R4).
 ### Config file schema (`server/claude-micro.config.json`)
 ```json
 {
-  "token": "generate-a-long-random-string",
+  "tokens": [ { "id": "toms-iphone", "token": "generate-a-long-random-string" } ],
   "bind": "127.0.0.1",
   "port": 8787,
   "defaultDepth": 2,
   "permissionTimeoutMs": null,
+  "auditLog": "claude-micro-audit.jsonl",
+  "allowedHosts": [],
   "projects": [ { "id": "kbapp", "name": "LLM keyboard app", "cwd": "/Users/tom/code/llm-keyboard-app" } ],
   "skills": {
     "up":    { "label": "Review",  "prompt": "Review the current diff and summarize risks in 5 bullets." },
@@ -67,9 +69,15 @@ config (see research.md R4).
 }
 ```
 
-`permissionTimeoutMs` is a **top-level** config key (optional, default null = none): if
-set, an unresolved PendingPermission is auto-denied after this many ms (FR-003). It is
-not a per-project field.
+Top-level optional keys (never per-project):
+- `token` — legacy single shared token, equivalent to `tokens: [{id:"shared",…}]` (FR-017).
+- `permissionTimeoutMs` (default null = none) — auto-deny unresolved gates (FR-003).
+- `auditLog` (path | false; default `claude-micro-audit.jsonl` beside the config) — FR-015.
+- `allowedHosts` — extra Host names accepted on WS upgrade (FR-018).
+- `pairHost` — host advertised in the pairing QR (default: auto-detected Tailscale/LAN IPv4, FR-020).
+- `resumeSessions` (default true) / `resumeLimit` (default 3) — boot-time re-listing of
+  on-disk resumable sessions (FR-021).
+- `heartbeatMs` (default 30000) — server ping interval for dead-socket culling (FR-021).
 
 ## Client-side stores
 
