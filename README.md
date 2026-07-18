@@ -38,5 +38,25 @@ Mac (companion server, Claude Agent SDK)
 | RGB status lighting | Status banner · watch complication · distinct haptic per event |
 | Layers / remappable keys | Sessions switcher + config-driven skills |
 
+## Security posture
+
+- Token-authenticated WebSocket (constant-time compare); unauthenticated frames close the
+  socket with `4401`. 1 MiB frame cap pre-auth.
+- Server binds to loopback by default; use a specific LAN/Tailscale IP otherwise — never
+  `0.0.0.0`. Tailscale encrypts the link; plain LAN is cleartext.
+- Permission gates are never auto-approved; risky tools (rm -rf, force-push, sudo…)
+  require a distinct confirmation gesture on every surface, including the Action button.
+- The pairing token lives in the iOS Keychain; Claude credentials never leave the Mac.
+- `claude-micro.config.json` (holds the token) is gitignored — copy the example to create it.
+
+## Status
+
+Server + both apps build clean and the protocol is exercised end-to-end
+(`server/test/`, 18 tests). Remaining work is tracked in
+`specs/001-claude-micro/tasks.md` — chiefly on-device verification (signing,
+haptics, Action button) and stretch goals (APNs, launchd).
+
 Built spec-first per the repo constitution. Protocol contract:
 `specs/001-claude-micro/contracts/websocket-protocol.md`.
+
+MIT licensed.
