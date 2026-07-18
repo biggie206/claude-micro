@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Micro — Keynote</title>
+<style>
+  :root {
+    --purple: #a78bfa; --purple-deep: #6d28d9; --dim: rgba(255,255,255,.55);
+    --faint: rgba(255,255,255,.28);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  body { font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+         color: #fff; -webkit-font-smoothing: antialiased; }
+  .slide { position: absolute; inset: 0; display: none; flex-direction: column;
+           align-items: center; justify-content: center; text-align: center;
+           padding: 6vh 8vw; }
+  .slide.active { display: flex; }
+  .glow { position: absolute; inset: 0; pointer-events: none;
+          background: radial-gradient(ellipse 60% 45% at 50% 62%, rgba(109,40,217,.28), transparent 70%); }
+  .kicker { font-size: 1.5vw; letter-spacing: .35em; text-transform: uppercase;
+            color: var(--purple); font-weight: 600; margin-bottom: 3.2vh; }
+  h1 { font-size: 7.4vw; font-weight: 700; letter-spacing: -.02em; line-height: 1.04; }
+  h2 { font-size: 4.6vw; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+  .sub { font-size: 2.1vw; color: var(--dim); font-weight: 400; margin-top: 3vh; line-height: 1.45; }
+  .accent { background: linear-gradient(90deg, #c4b5fd, #7c3aed);
+            -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .dial { width: 17vw; height: 17vw; margin-bottom: 4.5vh; }
+  .cols { display: flex; gap: 4vw; margin-top: 6vh; }
+  .col { width: 20vw; text-align: center; }
+  .col .icon { font-size: 4.4vw; margin-bottom: 2.2vh; }
+  .col h3 { font-size: 1.9vw; font-weight: 600; margin-bottom: 1.2vh; }
+  .col p { font-size: 1.35vw; color: var(--dim); line-height: 1.45; }
+  .rows { margin-top: 5.5vh; display: grid; grid-template-columns: auto auto auto; gap: 1.6vh 2.6vw;
+          font-size: 1.7vw; align-items: center; }
+  .rows .h { color: var(--faint); font-size: 1.15vw; letter-spacing: .22em; text-transform: uppercase; }
+  .rows .a { color: var(--dim); text-align: right; }
+  .rows .arrow { color: var(--purple); }
+  .rows .b { text-align: left; font-weight: 600; }
+  .arch { display: flex; align-items: center; gap: 1.6vw; margin-top: 6.5vh; }
+  .node { border: 1px solid rgba(167,139,250,.45); border-radius: 1.2vw; padding: 2.4vh 2vw;
+          min-width: 13vw; background: rgba(109,40,217,.10); }
+  .node h3 { font-size: 1.7vw; font-weight: 600; }
+  .node p { font-size: 1.15vw; color: var(--dim); margin-top: .8vh; }
+  .link { font-size: 1.1vw; color: var(--purple); letter-spacing: .06em; white-space: nowrap; }
+  .link small { display: block; color: var(--faint); letter-spacing: .02em; margin-top: .5vh; }
+  .bullets { margin-top: 5.5vh; display: flex; flex-direction: column; gap: 2.6vh;
+             font-size: 2vw; text-align: left; }
+  .bullets div { display: flex; align-items: baseline; gap: 1.2vw; }
+  .bullets span { color: var(--purple); font-weight: 700; }
+  .stats { display: flex; gap: 5.5vw; margin-top: 6.5vh; }
+  .stat b { display: block; font-size: 5vw; font-weight: 700; letter-spacing: -.02em; }
+  .stat i { font-style: normal; font-size: 1.35vw; color: var(--dim); letter-spacing: .08em;
+            text-transform: uppercase; }
+  .repo { margin-top: 5vh; font-size: 1.9vw; color: var(--purple); font-weight: 500; }
+  .foot { position: absolute; bottom: 4vh; font-size: 1.1vw; color: var(--faint); letter-spacing: .1em; }
+  #hud { position: fixed; bottom: 2.2vh; right: 2.6vw; font-size: 1vw; color: var(--faint);
+         font-variant-numeric: tabular-nums; }
+  #notes { position: fixed; left: 50%; bottom: 3vh; transform: translateX(-50%);
+           max-width: 66vw; padding: 1.6vh 2vw; background: rgba(20,20,24,.92);
+           border: 1px solid rgba(167,139,250,.3); border-radius: 1vw; font-size: 1.25vw;
+           color: var(--dim); line-height: 1.5; display: none; text-align: left; }
+  body.notes #notes { display: block; }
+  body.clean #hud, body.clean #notes { display: none !important; }
+</style>
+</head>
+<body>
+
+<section class="slide" data-narration="This is Claude Micro. Claude Code — on your wrist.">
+  <div class="glow"></div>
+  <svg class="dial" viewBox="0 0 200 200" fill="none">
+    <circle cx="100" cy="100" r="64" stroke="rgba(255,255,255,.14)" stroke-width="13"/>
+    <path d="M100 36 A64 64 0 1 1 39 120" stroke="url(#g)" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="100" cy="100" r="40" fill="#16101f" stroke="rgba(255,255,255,.1)" stroke-width="2"/>
+    <circle cx="72" cy="122" r="7" fill="#d9c9ff"/>
+    <defs><linearGradient id="g" x1="0" y1="0" x2="200" y2="200">
+      <stop stop-color="#d9c9ff"/><stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient></defs>
+  </svg>
+  <h1>Claude <span class="accent">Micro</span></h1>
+  <p class="sub">Claude Code. On your wrist.</p>
+</section>
+
+<section class="slide" data-narration="Here's the problem. You kick off a long agent run and walk away — and the moment Claude needs permission, everything stops. The run stalls until you're back at your desk.">
+  <div class="glow"></div>
+  <p class="kicker">The problem</p>
+  <h2>Your agent needs you.<br>You're not at your desk.</h2>
+  <p class="sub">One permission gate, and the whole run stalls —<br>until you walk back to the Mac.</p>
+</section>
+
+<section class="slide" data-narration="We took inspiration from hardware — the Work Louder Codex Micro, a macro pad built for driving coding agents. Dedicated approve keys. A rotary dial. Status lighting. Claude Micro recreates that control surface, in software.">
+  <div class="glow"></div>
+  <p class="kicker">The inspiration</p>
+  <h2>Hardware, <span class="accent">reimagined</span>.</h2>
+  <div class="rows">
+    <div class="h">Codex&nbsp;Micro</div><div class="h"></div><div class="h">Claude&nbsp;Micro</div>
+    <div class="a">Accept / reject keys</div><div class="arrow">→</div><div class="b">Action button</div>
+    <div class="a">Rotary dial</div><div class="arrow">→</div><div class="b">Digital Crown</div>
+    <div class="a">RGB status lighting</div><div class="arrow">→</div><div class="b">Complication + haptics</div>
+  </div>
+</section>
+
+<section class="slide" data-narration="The product is the watch. The Digital Crown becomes the thinking-depth dial — five detents, with haptics. The Action button approves the pending gate, or opens dictation. And the complication, with distinct haptic patterns, is the status lighting — you can feel the difference between needs-input, complete, and error.">
+  <div class="glow"></div>
+  <p class="kicker">Apple Watch Ultra</p>
+  <h2>The watch <span class="accent">is</span> the product.</h2>
+  <div class="cols">
+    <div class="col"><div class="icon">⌚︎</div><h3>Digital Crown</h3><p>Thinking-depth dial.<br>Five detents, haptic clicks.</p></div>
+    <div class="col"><div class="icon">◉</div><h3>Action button</h3><p>Approve the pending gate —<br>or speak the next prompt.</p></div>
+    <div class="col"><div class="icon">✦</div><h3>Complication + haptics</h3><p>Status you can feel:<br>needs-input, complete, error.</p></div>
+  </div>
+</section>
+
+<section class="slide" data-narration="Under the hood: a companion server on the Mac owns real Claude Code sessions through the Agent SDK. The iPhone is an invisible bridge — watch O S can't open sockets, so the phone relays a token-authenticated WebSocket to the wrist over Watch Connectivity.">
+  <div class="glow"></div>
+  <p class="kicker">Under the hood</p>
+  <h2>Mac → pocket → <span class="accent">wrist</span>.</h2>
+  <div class="arch">
+    <div class="node"><h3>Mac</h3><p>Companion server<br>Claude Agent SDK</p></div>
+    <div class="link">⟵ WebSocket ⟶<small>token-authenticated</small></div>
+    <div class="node"><h3>iPhone</h3><p>Invisible bridge<br>QR pairing · notifications</p></div>
+    <div class="link">⟵ WatchConnectivity ⟶<small>TN3135: no watch sockets</small></div>
+    <div class="node"><h3>Watch</h3><p>Crown · Action button<br>Complication · haptics</p></div>
+  </div>
+</section>
+
+<section class="slide" data-narration="And it's safe by default. Per-device tokens, compared in constant time. Risky commands always require a distinct confirmation gesture — a standing grant never green-lights an r m dash r f. Every approval lands in an append-only audit log. And pairing is a single QR scan.">
+  <div class="glow"></div>
+  <p class="kicker">Security</p>
+  <h2>Safe by <span class="accent">default</span>.</h2>
+  <div class="bullets">
+    <div><span>—</span>Per-device tokens, constant-time compare, revocable</div>
+    <div><span>—</span>Risky commands always re-confirm — grants never cover <code>rm&nbsp;-rf</code></div>
+    <div><span>—</span>Append-only audit log of every approval</div>
+    <div><span>—</span>Keychain storage · one-scan QR pairing</div>
+  </div>
+</section>
+
+<section class="slide" data-narration="It's built spec-first: a written constitution, twenty-one functional requirements, forty-one tests, and continuous integration on every push — reviewed and hardened by multi-agent code review.">
+  <div class="glow"></div>
+  <p class="kicker">The craft</p>
+  <h2>Built <span class="accent">spec-first</span>.</h2>
+  <div class="stats">
+    <div class="stat"><b>21</b><i>Functional reqs</i></div>
+    <div class="stat"><b>41</b><i>Tests</i></div>
+    <div class="stat"><b>2</b><i>Platforms + server</i></div>
+    <div class="stat"><b>CI</b><i>Green on every push</i></div>
+  </div>
+  <p class="sub">Constitution → specify → plan → tasks → implement — with multi-agent review.</p>
+</section>
+
+<section class="slide" data-narration="Claude Micro. Open source, M I T licensed. Control your agent from anywhere your wrist goes.">
+  <div class="glow"></div>
+  <svg class="dial" viewBox="0 0 200 200" fill="none" style="width:11vw;height:11vw">
+    <circle cx="100" cy="100" r="64" stroke="rgba(255,255,255,.14)" stroke-width="13"/>
+    <path d="M100 36 A64 64 0 1 1 39 120" stroke="url(#g2)" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="100" cy="100" r="40" fill="#16101f"/>
+    <circle cx="72" cy="122" r="7" fill="#d9c9ff"/>
+    <defs><linearGradient id="g2" x1="0" y1="0" x2="200" y2="200">
+      <stop stop-color="#d9c9ff"/><stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient></defs>
+  </svg>
+  <h1>Claude <span class="accent">Micro</span></h1>
+  <p class="repo">github.com/biggie206/claude-micro</p>
+  <p class="foot">OPEN SOURCE · MIT · BUILT SPEC-FIRST WITH CLAUDE CODE</p>
+</section>
+
+<div id="hud"></div>
+<div id="notes"></div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const params = new URLSearchParams(location.search);
+  let i = Math.min(Math.max((parseInt(params.get("slide")) || 1) - 1, 0), slides.length - 1);
+  if (params.get("clean") === "1") document.body.classList.add("clean");
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    document.getElementById("hud").textContent = (i + 1) + " / " + slides.length;
+    document.getElementById("notes").textContent = slides[i].dataset.narration;
+  }
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", " ", "PageDown"].includes(e.key)) show(i + 1);
+    else if (["ArrowLeft", "PageUp"].includes(e.key)) show(i - 1);
+    else if (e.key === "n") document.body.classList.toggle("notes");
+  });
+  addEventListener("click", () => show(i + 1));
+  show(i);
+</script>
+</body>
+</html>
