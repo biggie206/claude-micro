@@ -59,11 +59,16 @@ final class ServerConnection: ObservableObject {
         if TokenStore.load() != nil { UserDefaults.standard.removeObject(forKey: "serverToken") }
     }
 
+    private var reconnectScheduled = false
+
     func connect() {
         guard let url = URL(string: serverURL) else { lastError = "Bad server URL"; return }
         UserDefaults.standard.set(serverURL, forKey: "serverURL")
         TokenStore.save(token)
-        task?.cancel(with: .goingAway, reason: nil)
+        reconnectScheduled = false
+        let old = task
+        task = nil                       // detach before cancel: its callbacks are now stale
+        old?.cancel(with: .goingAway, reason: nil)
         let task = URLSession.shared.webSocketTask(with: url)
         self.task = task
         task.resume()
@@ -82,11 +87,12 @@ final class ServerConnection: ObservableObject {
             connect()
             return
         }
-        task.send(.data(command.encoded)) { [weak self] error in
+        task.send(.data(command.encoded)) { [weak self, weak task] error in
             if let error {
                 Task { @MainActor in
-                    self?.queueForRetry(command)
-                    self?.handleDrop(error)
+                    guard let self, let task, task === self.task else { return }   // stale socket's failure
+                    self.queueForRetry(command)
+                    self.handleDrop(error)
                 }
             }
         }
@@ -109,9 +115,10 @@ final class ServerConnection: ObservableObject {
     }
 
     private func receiveLoop() {
-        task?.receive { [weak self] result in
+        guard let task else { return }
+        task.receive { [weak self, weak task] result in
             Task { @MainActor in
-                guard let self else { return }
+                guard let self, let task, task === self.task else { return }   // cancelled socket — ignore
                 switch result {
                 case .failure(let error):
                     self.handleDrop(error)
@@ -139,6 +146,8 @@ final class ServerConnection: ObservableObject {
     }
 
     private func handleDrop(_ error: Error) {
+        guard !reconnectScheduled else { return }   // one reconnect in flight at a time
+        reconnectScheduled = true
         state.markDisconnected()
         relay.pushState(state, haptic: nil)
         lastError = error.localizedDescription
