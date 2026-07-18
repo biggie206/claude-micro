@@ -72,10 +72,40 @@ final class ServerConnection: ObservableObject {
         startPing()
     }
 
+    /// Commands worth retrying after a reconnect (FR-019: a notification-action approve
+    /// often arrives while the socket is suspended). Pings/hellos are never queued.
+    private var outbox: [ClientCommand] = []
+
     func send(_ command: ClientCommand) {
-        task?.send(.data(command.encoded)) { [weak self] error in
-            if let error { Task { @MainActor in self?.handleDrop(error) } }
+        guard let task else {
+            queueForRetry(command)
+            connect()
+            return
         }
+        task.send(.data(command.encoded)) { [weak self] error in
+            if let error {
+                Task { @MainActor in
+                    self?.queueForRetry(command)
+                    self?.handleDrop(error)
+                }
+            }
+        }
+    }
+
+    private func queueForRetry(_ command: ClientCommand) {
+        switch command {
+        case .ping, .hello: return
+        default:
+            guard outbox.count < 8 else { return }
+            outbox.append(command)
+        }
+    }
+
+    private func flushOutbox() {
+        guard !outbox.isEmpty else { return }
+        let queued = outbox
+        outbox = []
+        queued.forEach { send($0) }   // late approvals resolve as already_resolved, surfaced on the pad
     }
 
     private func receiveLoop() {
@@ -91,6 +121,7 @@ final class ServerConnection: ObservableObject {
                     self.state.connected = true
                     if let data = Self.data(from: message),
                        let event = try? JSONDecoder().decode(ServerEvent.self, from: data) {
+                        if case .snapshot = event { self.flushOutbox() }   // authed + converged
                         let haptic = self.state.apply(event)
                         // SC-005: only state transitions reach the watch — assistant_delta
                         // fires per streamed token but never changes watch-visible state.

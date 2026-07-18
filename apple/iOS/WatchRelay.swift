@@ -10,12 +10,26 @@ final class WatchRelay: NSObject, WCSessionDelegate {
     /// Set by ServerConnection: forwards watch commands to the server.
     var onCommand: (@MainActor (ClientCommand) -> Void)?
 
+    /// Notification categories (FR-019). Risky requests get NO Approve action —
+    /// a lock-screen button is a single tap, and Constitution V requires a distinct
+    /// confirmation gesture; tapping the risky notification opens the in-app flow.
+    static let permissionCategory = "CLAUDE_MICRO_PERMISSION"
+    static let riskyPermissionCategory = "CLAUDE_MICRO_PERMISSION_RISKY"
+
     override init() {
         super.init()
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        let approve = UNNotificationAction(identifier: "APPROVE", title: "Approve", options: [.authenticationRequired])
+        let deny = UNNotificationAction(identifier: "DENY", title: "Deny", options: [.destructive])
+        center.setNotificationCategories([
+            UNNotificationCategory(identifier: Self.permissionCategory, actions: [approve, deny], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Self.riskyPermissionCategory, actions: [deny], intentIdentifiers: []),
+        ])
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     @MainActor
@@ -43,12 +57,20 @@ final class WatchRelay: NSObject, WCSessionDelegate {
         }
     }
 
+    @MainActor
     private func notify(for haptic: HapticSignal, state: AppState) {
         let content = UNMutableNotificationContent()
         switch haptic {
         case .needsInput:
-            content.title = "Claude needs input"
-            Task { @MainActor in content.body = state.activePending?.inputSummary ?? "A session is waiting on a permission." }
+            if let pending = state.activePending {
+                content.title = pending.risky ? "Claude needs input — risky" : "Claude needs input"
+                content.body = pending.inputSummary
+                content.categoryIdentifier = pending.risky ? Self.riskyPermissionCategory : Self.permissionCategory
+                content.userInfo = ["sessionId": pending.sessionId, "requestId": pending.id]
+            } else {
+                content.title = "Claude needs input"
+                content.body = "A session is waiting on a permission."
+            }
         case .complete:
             content.title = "Run complete"
         case .error:
@@ -94,4 +116,34 @@ final class WatchRelay: NSObject, WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) { session.activate() }
+}
+
+// MARK: notification actions (FR-019)
+
+extension WatchRelay: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let info = response.notification.request.content.userInfo
+        guard let sessionId = info["sessionId"] as? String, let requestId = info["requestId"] as? String else {
+            return completionHandler()
+        }
+        let command: ClientCommand?
+        switch response.actionIdentifier {
+        case "APPROVE": command = .approve(sessionId: sessionId, requestId: requestId, always: false)
+        case "DENY":    command = .deny(sessionId: sessionId, requestId: requestId, message: nil)
+        default:        command = nil   // default tap just opens the app
+        }
+        guard let command else { return completionHandler() }
+        Task { @MainActor in
+            self.onCommand?(command)   // ServerConnection queues + reconnects if the socket is suspended
+            completionHandler()
+        }
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([])   // foregrounded: the in-app pending card is already visible
+    }
 }

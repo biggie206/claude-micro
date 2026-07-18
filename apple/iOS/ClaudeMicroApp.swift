@@ -39,10 +39,16 @@ struct ClaudeMicroApp: App {
 struct SettingsView: View {
     @EnvironmentObject var connection: ServerConnection
     @EnvironmentObject var state: AppState
+    @State private var showScanner = false
 
     var body: some View {
         Form {
             Section("Companion server (Mac)") {
+                Button {
+                    showScanner = true
+                } label: {
+                    Label("Scan pairing QR", systemImage: "qrcode.viewfinder")
+                }
                 TextField("ws://mac-ip:8787/ws", text: $connection.serverURL)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 SecureField("Token", text: $connection.token)
@@ -81,6 +87,14 @@ struct SettingsView: View {
             Section {
                 Text("Watch Action button: Watch Settings → Action Button → Shortcut → “Claude Primary Action”.")
                     .font(.caption)
+            }
+        }
+        .sheet(isPresented: $showScanner) {
+            PairingSheet { url, token in
+                connection.serverURL = url
+                connection.token = token
+                showScanner = false
+                connection.connect()   // persists URL + Keychain token
             }
         }
     }

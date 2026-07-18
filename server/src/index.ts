@@ -16,4 +16,18 @@ if (configError) {
   process.exit(1);
 }
 
+const pairFlag = process.argv.indexOf("--pair");
+if (pairFlag !== -1) {
+  // FR-020: print a pairing QR and exit (never runs alongside the server so the
+  // token isn't left on screen during normal operation).
+  const requestedId = process.argv[pairFlag + 1]?.startsWith("-") ? undefined : process.argv[pairFlag + 1];
+  const { default: qrcode } = await import("qrcode-terminal");
+  const { buildPairingUri } = await import("./pairing.js");
+  const { uri, tokenId, host } = buildPairingUri(config, requestedId);
+  console.log(`Pairing QR for token "${tokenId}" → ws://${host}:${config.port}/ws`);
+  console.log("Scan from Claude Micro on iPhone: Settings → Scan pairing QR\n");
+  qrcode.generate(uri, { small: true });
+  process.exit(0);
+}
+
 startServer(config);

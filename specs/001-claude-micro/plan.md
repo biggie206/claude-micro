@@ -159,6 +159,11 @@ status back to idle.
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
     suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
     (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - UX pass 2 (FR-019/020, T054/T055): actionable needs-input notifications (Approve
+    requires device auth; risky requests carry no Approve action and route to the in-app
+    confirmation), client outbox retry over reconnect, QR pairing (`npm run pair`
+    prints a claudemicro://pair QR preferring the Tailscale IP; iOS VisionKit scanner
+    in Settings fills URL + Keychain token).
   - Security hardening pass (FR-015..018, T049–T053): grant-ordering hole closed (risky
     never satisfied by standing grants; `always` ignored on risky), grants surfaced in
     session state + `revoke_grant` + iOS Settings UI, append-only permission audit log,

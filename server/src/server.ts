@@ -21,6 +21,8 @@ export interface Config {
   auditLog?: string | false;
   /** Extra Host header names accepted on upgrade (IP literals + localhost always pass). */
   allowedHosts?: string[];
+  /** Host advertised in the pairing QR (default: auto-detected Tailscale/LAN IPv4). */
+  pairHost?: string;
   /** Test hooks; production defaults apply when omitted. */
   handshakeTimeoutMs?: number;
   maxUnauthedSockets?: number;

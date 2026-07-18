@@ -22,6 +22,7 @@ targets:
         NSMicrophoneUsageDescription: "Push-to-talk voice prompts for your Claude sessions."
         NSSpeechRecognitionUsageDescription: "Transcribes your voice prompts on-device before sending them to your Mac."
         NSLocalNetworkUsageDescription: "Connects to the Claude Micro companion server running on your Mac."
+        NSCameraUsageDescription: "Scans the pairing QR code shown by the claude-micro server on your Mac."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         UIBackgroundModes: [audio]

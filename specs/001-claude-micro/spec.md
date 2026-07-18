@@ -219,6 +219,13 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
   bad-token attempts from one source address MUST back off exponentially; WebSocket
   upgrades bearing a browser `Origin` header MUST be rejected and the `Host` header
   validated against loopback/IP-literal/allowlisted names (DNS-rebinding defense).
+- **FR-019**: The needs-input notification on iPhone MUST carry Approve/Deny actions so
+  a gate can be resolved from the notification (best-effort delivery: commands queue
+  and flush on reconnect if the socket was suspended). Risky requests MUST NOT carry an
+  Approve action — tapping opens the app's confirmation flow (Constitution V).
+- **FR-020**: The server MUST be able to emit a pairing QR code (`--pair` /
+  `npm run pair`) encoding `claudemicro://pair?url=…&token=…`, and the iPhone app MUST
+  be able to scan it to configure the connection — replacing manual URL/token entry.
 
 ### Key Entities
 

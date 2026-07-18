@@ -8,11 +8,16 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "pair": "node dist/index.js --pair",
     "test": "vitest run"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.1.77",
+    "@types/qrcode-terminal": "^0.12.2",
+    "qrcode-terminal": "^0.12.0",
     "ws": "^8.18.0",
     "zod": "^3.23.0"
   },
