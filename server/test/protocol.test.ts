@@ -14,6 +14,7 @@ describe("protocol round-trip", () => {
     { v: 1, type: "interrupt", sessionId: "s1" },
     { v: 1, type: "set_depth", level: 4 },
     { v: 1, type: "skill", direction: "up" },
+    { v: 1, type: "revoke_grant", sessionId: "s1", toolName: "Bash" },
     { v: 1, type: "list_projects" },
     { v: 1, type: "ping", t: 123 },
   ];
@@ -94,6 +95,51 @@ describe("permission single-resolution (FR-004)", () => {
     const summary = summarizeInput("Bash", { command: "x".repeat(200) });
     expect(summary.length).toBeLessThanOrEqual(80);
     expect(summary.endsWith("…")).toBe(true);
+  });
+
+  it("standing grants never satisfy a risky invocation (FR-016)", async () => {
+    const s = new MicroSession("p", "/tmp", 2);
+    let requestId = "";
+    s.on("permission", (r) => { requestId = r.id; });
+    const first = bridge(s, "Bash", { command: "ls" });
+    s.resolvePermission(requestId, "allowed", "test", { always: true });
+    await first;
+    expect(s.toShape().grants).toEqual(["Bash"]);
+
+    // risky Bash must re-prompt despite the standing Bash grant
+    let riskyEmitted: boolean | undefined;
+    s.on("permission", (r) => { riskyEmitted = r.risky; requestId = r.id; });
+    const risky = bridge(s, "Bash", { command: "rm -rf /tmp/x" });
+    expect(riskyEmitted).toBe(true);
+    s.resolvePermission(requestId, "denied", "test");
+    await expect(risky).resolves.toMatchObject({ behavior: "deny" });
+  });
+
+  it("`always` is ignored when approving a risky request (FR-016)", async () => {
+    const s = new MicroSession("p", "/tmp", 2);
+    let requestId = "";
+    s.on("permission", (r) => { requestId = r.id; });
+    const decision = bridge(s, "Bash", { command: "sudo rm -rf /" });
+    s.resolvePermission(requestId, "allowed", "test", { always: true });
+    await decision;
+    expect(s.toShape().grants).toEqual([]); // no grant minted from a risky approval
+  });
+
+  it("revokeGrant removes the grant and re-gates the tool", async () => {
+    const s = new MicroSession("p", "/tmp", 2);
+    let requestId = "";
+    s.on("permission", (r) => { requestId = r.id; });
+    const first = bridge(s, "Read", { file_path: "/tmp/a" });
+    s.resolvePermission(requestId, "allowed", "test", { always: true });
+    await first;
+    expect(s.revokeGrant("Read")).toBe(true);
+    expect(s.revokeGrant("Read")).toBe(false);
+    expect(s.toShape().grants).toEqual([]);
+
+    let emitted = 0;
+    s.on("permission", (r) => { emitted++; requestId = r.id; });
+    void bridge(s, "Read", { file_path: "/tmp/b" });
+    expect(emitted).toBe(1); // gate is back after revocation
   });
 
   it("auto-denies after the configured timeout (FR-003)", async () => {

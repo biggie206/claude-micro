@@ -32,6 +32,7 @@ struct Session: Codable, Identifiable, Equatable {
     var status: SessionStatus
     var depth: Int
     var active: Bool
+    var grants: [String]   // always-allowed tools, session-scoped (FR-016)
     var lastSnippet: String
     var costUSD: Double
     let startedAt: String
@@ -156,6 +157,7 @@ enum ClientCommand {
     case interrupt(sessionId: String)
     case setDepth(sessionId: String?, level: Int)
     case skill(sessionId: String?, direction: String)
+    case revokeGrant(sessionId: String, toolName: String)
     case ping(t: Double)
 
     var json: [String: Any] {
@@ -184,6 +186,8 @@ enum ClientCommand {
         case let .skill(sessionId, direction):
             d["type"] = "skill"; d["direction"] = direction
             if let sessionId { d["sessionId"] = sessionId }
+        case let .revokeGrant(sessionId, toolName):
+            d["type"] = "revoke_grant"; d["sessionId"] = sessionId; d["toolName"] = toolName
         case let .ping(t):
             d["type"] = "ping"; d["t"] = t
         }

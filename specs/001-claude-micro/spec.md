@@ -204,6 +204,21 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
   and require the shared token on every connection.
 - **FR-014**: All streaming assistant text MUST be delivered to the phone as deltas
   (target: first token visible < 1s after SDK emits it on LAN).
+- **FR-015**: The server MUST keep an append-only audit log of every permission
+  resolution (tool name, full tool input, risky flag, resolution, resolver identity,
+  timestamp), enabled by default — approvals execute code and MUST be attributable.
+- **FR-016**: Always-allow grants MUST be visible to clients (carried in session state)
+  and revocable via a `revoke_grant` command. A risky invocation MUST never be satisfied
+  by a standing grant, and an `always` flag on the approval of a risky request MUST be
+  ignored server-side (Constitution V).
+- **FR-017**: The server MUST support multiple named pairing tokens so an individual
+  device can be revoked without re-pairing every device; resolver identity in events and
+  the audit log MUST include the token name.
+- **FR-018**: Connection hardening: unauthenticated sockets MUST be closed after a
+  handshake timeout; concurrent unauthenticated connections MUST be capped; repeated
+  bad-token attempts from one source address MUST back off exponentially; WebSocket
+  upgrades bearing a browser `Origin` header MUST be rejected and the `Host` header
+  validated against loopback/IP-literal/allowlisted names (DNS-rebinding defense).
 
 ### Key Entities
 

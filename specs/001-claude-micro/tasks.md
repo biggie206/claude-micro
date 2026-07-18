@@ -87,6 +87,11 @@
 - [ ] T046 Server restart recovery: re-list resumable sessions from `~/.claude/projects/` on boot as `idle (resumable)` (spec Edge Cases)
 - [x] T047 UI/UX + performance polish pass within existing FRs (FR-005/006/009): animations/haptics/empty states/accessibility on iOS pad + watch, ATS/local-network Info.plist keys, WatchConnectivity context throttling (SC-005), app icons (2026-07-18: done, both simulator builds green)
 - [x] T048 Pre-publication security review (repo going public): secrets scan incl. git history, auth/bind posture, LICENSE, docs accuracy (2026-07-18: history clean; hardened token compare/maxPayload/ws error handling; quickstart 0.0.0.0 guidance fixed; MIT LICENSE added; iOS token moved to Keychain with verified-before-delete migration)
+- [x] T049 [Sec] Fix grant-ordering hole: risky check before alwaysAllow; ignore `always` on risky approvals (FR-016, server + test) (2026-07-18)
+- [x] T050 [Sec] `startServer()` refactor + WS integration tests: auth (SC-006), handshake timeout, unauth cap, bad-token backoff, Origin/Host validation (FR-018) (2026-07-18: 10 integration tests green)
+- [x] T051 [Sec] Append-only permission audit log (FR-015) + named multi-token auth (FR-017); pin SDK exact version (2026-07-18: SDK pinned 0.1.77)
+- [x] T052 [Sec] Grants in session state + `revoke_grant` command (FR-016): protocol.ts, contract doc, Models.swift, iOS Settings grants UI (2026-07-18)
+- [x] T053 [Sec] SECURITY.md + threat model; CI `npm audit` gate; dependabot (npm + actions) (2026-07-18)
 
 ## Dependencies & Execution Order
 

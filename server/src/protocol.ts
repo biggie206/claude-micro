@@ -21,6 +21,7 @@ export const SessionShape = z.object({
   status: SessionStatus,
   depth: DepthLevel,
   active: z.boolean(),
+  grants: z.array(z.string()),   // always-allowed tools, session-scoped (FR-016)
   lastSnippet: z.string(),
   costUSD: z.number(),
   startedAt: z.string(),
@@ -55,6 +56,7 @@ export const ClientCommand = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("interrupt"), sessionId: z.string() }),
   z.object({ ...base, type: z.literal("set_depth"), sessionId: z.string().optional(), level: DepthLevel }),
   z.object({ ...base, type: z.literal("skill"), sessionId: z.string().optional(), direction: z.enum(["up", "down", "left", "right"]) }),
+  z.object({ ...base, type: z.literal("revoke_grant"), sessionId: z.string(), toolName: z.string() }),
   z.object({ ...base, type: z.literal("list_projects") }),
   z.object({ ...base, type: z.literal("ping"), t: z.number() }),
 ]);

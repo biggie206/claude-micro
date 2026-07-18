@@ -15,12 +15,21 @@ interface PendingInternal extends PendingPermissionShape {
   timer?: NodeJS.Timeout;
 }
 
+/** Internal audit detail attached to permissionResolved (FR-015); not sent on the wire. */
+export interface ResolutionAudit {
+  toolName: string;
+  input: Record<string, unknown>;
+  inputSummary: string;
+  risky: boolean;
+  always: boolean;
+}
+
 export interface MicroSessionEvents {
   state: [];
   delta: [text: string];
   tool: [toolName: string, summary: string];
   permission: [request: PendingPermissionShape];
-  permissionResolved: [requestId: string, resolution: "allowed" | "denied", by: string];
+  permissionResolved: [requestId: string, resolution: "allowed" | "denied", by: string, audit: ResolutionAudit];
   result: [subtype: string, costUSD: number, durationMs: number, summary: string];
 }
 
@@ -53,9 +62,17 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
   toShape(): SessionShape {
     return {
       id: this.id, projectId: this.projectId, cwd: this.cwd, status: this.status,
-      depth: this.depth, active: this.active, lastSnippet: this.lastSnippet,
+      depth: this.depth, active: this.active, grants: [...this.alwaysAllow].sort(),
+      lastSnippet: this.lastSnippet,
       costUSD: this.costUSD, startedAt: this.startedAt, lastActivityAt: this.lastActivityAt,
     };
+  }
+
+  /** FR-016: revoke a standing always-allow grant. */
+  revokeGrant(toolName: string): boolean {
+    const removed = this.alwaysAllow.delete(toolName);
+    if (removed) this.touch("state");
+    return removed;
   }
 
   pendingRequests(): PendingPermissionShape[] {
@@ -116,30 +133,37 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
     if (!p) return false; // already resolved or unknown
     this.pending.delete(requestId);
     if (p.timer) clearTimeout(p.timer);
+    // FR-016 / Constitution V: a risky invocation can never mint a standing grant.
+    const always = Boolean(opts?.always) && !p.risky;
     if (resolution === "allowed") {
-      if (opts?.always) this.alwaysAllow.add(p.toolName);
+      if (always) this.alwaysAllow.add(p.toolName);
       p.resolve({ behavior: "allow", updatedInput: p.input });
     } else {
       p.resolve({ behavior: "deny", message: opts?.message ?? "Denied from Claude Micro" });
     }
-    this.emit("permissionResolved", requestId, resolution, by);
+    this.emit("permissionResolved", requestId, resolution, by,
+      { toolName: p.toolName, input: p.input, inputSummary: p.inputSummary, risky: p.risky, always });
     if (this.pending.size === 0 && this.status === "needs_input") this.setStatus("working");
+    if (always) this.touch("state"); // grants changed → clients see it in session state
     return true;
   }
 
   // ---------- internals ----------
 
   private bridgePermission(toolName: string, input: Record<string, unknown>) {
-    if (this.alwaysAllow.has(toolName)) {
+    const inputStr = JSON.stringify(input);
+    const risky = RISKY_PATTERNS.some((re) => re.test(inputStr));
+    // FR-016 / Constitution V: standing grants never satisfy a RISKY invocation —
+    // "always allow Bash" must not silently green-light a later `rm -rf`.
+    if (!risky && this.alwaysAllow.has(toolName)) {
       return Promise.resolve({ behavior: "allow" as const, updatedInput: input });
     }
-    const inputStr = JSON.stringify(input);
     const request: PendingInternal = {
       id: randomUUID(),
       sessionId: this.id,
       toolName,
       inputSummary: summarizeInput(toolName, input),
-      risky: RISKY_PATTERNS.some((re) => re.test(inputStr)),
+      risky,
       requestedAt: new Date().toISOString(),
       input,
       resolve: () => {},
@@ -206,7 +230,8 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
       if (p.timer) clearTimeout(p.timer);
       p.resolve({ behavior: "deny", message: reason });
       this.pending.delete(id);
-      this.emit("permissionResolved", id, "denied", "system");
+      this.emit("permissionResolved", id, "denied", "system",
+        { toolName: p.toolName, input: p.input, inputSummary: p.inputSummary, risky: p.risky, always: false });
     }
   }
 

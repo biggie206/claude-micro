@@ -1,8 +1,13 @@
 {
-  "token": "REPLACE-WITH-LONG-RANDOM-STRING",
+  "tokens": [
+    { "id": "toms-iphone", "token": "REPLACE-WITH-LONG-RANDOM-STRING" }
+  ],
   "bind": "127.0.0.1",
   "port": 8787,
   "defaultDepth": 2,
+  "permissionTimeoutMs": null,
+  "auditLog": "claude-micro-audit.jsonl",
+  "allowedHosts": [],
   "projects": [
     { "id": "kbapp", "name": "LLM keyboard app", "cwd": "/Users/tom/code/llm-keyboard-app" }
   ],

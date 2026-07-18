@@ -55,6 +55,29 @@ struct SettingsView: View {
                 }
                 if let err = connection.lastError { Text(err).font(.caption).foregroundStyle(.red) }
             }
+            // FR-016: standing grants must be visible and revocable, not invisible server state.
+            let granted = state.sessions.filter { !$0.grants.isEmpty }
+            if !granted.isEmpty {
+                Section("Always-allowed tools") {
+                    ForEach(granted) { session in
+                        ForEach(session.grants, id: \.self) { tool in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(tool).font(.subheadline)
+                                    Text(session.projectId).font(.caption2).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button("Revoke", role: .destructive) {
+                                    connection.send(.revokeGrant(sessionId: session.id, toolName: tool))
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                    Text("Granted for this session only. Risky commands always re-prompt.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
             Section {
                 Text("Watch Action button: Watch Settings → Action Button → Shortcut → “Claude Primary Action”.")
                     .font(.caption)

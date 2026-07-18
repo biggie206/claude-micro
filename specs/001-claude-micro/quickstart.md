@@ -6,7 +6,8 @@
 cd server
 npm install
 cp claude-micro.config.example.json claude-micro.config.json
-# edit: set a long random token, list your project dirs
+# edit: give each device a named token (32+ random chars), list your project dirs
+# (legacy single "token" is still accepted; named tokens let you revoke one device)
 npm run dev          # or: npm run build && npm start
 ```
 

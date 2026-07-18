@@ -159,6 +159,13 @@ status back to idle.
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
     suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
     (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - Security hardening pass (FR-015..018, T049–T053): grant-ordering hole closed (risky
+    never satisfied by standing grants; `always` ignored on risky), grants surfaced in
+    session state + `revoke_grant` + iOS Settings UI, append-only permission audit log,
+    named per-device tokens, handshake timeout / unauth cap / bad-token backoff /
+    Origin+Host validation, `startServer()` refactor with 10 WS integration tests,
+    SECURITY.md, npm audit CI gate, dependabot, SDK pinned 0.1.77. Multi-provider
+    (Codex/Gemini) expansion researched then cancelled by owner ("too much lift").
   - Review loop round 1 (8-angle small review): consolidated risky-approval dialog into
     one `riskyApprovalDialog` chokepoint; watch pushes now gated by event relevance at
     ServerConnection (relay throttle machinery deleted); stale `riskyToConfirm` pruned

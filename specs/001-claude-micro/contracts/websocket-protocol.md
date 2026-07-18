@@ -10,7 +10,7 @@ Zod schemas in `server/src/protocol.ts` are the normative source; this document 
 
 | type | payload | notes |
 |---|---|---|
-| `hello` | `{ token, device: "iphone"\|"watch"\|"other", name }` | must be first frame; reply `snapshot` |
+| `hello` | `{ token, device: "iphone"\|"watch"\|"other", name }` | must be first frame; reply `snapshot`. Token may be the single shared token or any configured named token (FR-017); resolver identity becomes `tokenName/device:name` |
 | `create_session` | `{ projectId, depth? }` | projectId from config allowlist |
 | `set_active` | `{ sessionId }` | routes subsequent contextual commands |
 | `prompt` | `{ sessionId, text, source: "ptt"\|"typed"\|"skill" }` | starts a turn |
@@ -19,6 +19,7 @@ Zod schemas in `server/src/protocol.ts` are the normative source; this document 
 | `interrupt` | `{ sessionId }` | SDK `query.interrupt()` |
 | `set_depth` | `{ sessionId?, level: 0..4 }` | omitted sessionId ⇒ active session; applies next turn |
 | `skill` | `{ sessionId?, direction: "up"\|"down"\|"left"\|"right" }` | server expands binding → `prompt` |
+| `revoke_grant` | `{ sessionId, toolName }` | removes an always-allow grant (FR-016); broadcast `session_state` |
 | `list_projects` | `{}` | reply `snapshot` (projects are part of the snapshot; no separate event) |
 | `ping` | `{ t }` | reply `pong { t }` |
 
@@ -43,6 +44,7 @@ Session = {
   id: string; projectId: string; cwd: string;
   status: "idle" | "thinking" | "working" | "needs_input" | "complete" | "error" | "interrupted";
   depth: 0|1|2|3|4; active: boolean;
+  grants: string[];              // always-allowed tool names, session-scoped (FR-016); never satisfies risky invocations
   lastSnippet: string; costUSD: number; startedAt: string; lastActivityAt: string;
 }
 PendingPermission = {
@@ -59,6 +61,14 @@ Project = { id: string; name: string; cwd: string }
 `idle` gray · `thinking` purple pulse · `working` blue · `needs_input` amber (haptic
 `.notification`) · `complete` green (haptic `.success`) · `error` red (haptic `.failure`) ·
 `interrupted` yellow (no haptic).
+
+## Connection hardening (FR-018)
+
+- Sockets that have not completed `hello` within 10s are closed `4401`.
+- At most 8 concurrent unauthenticated sockets; excess connections are closed `4401`.
+- Repeated bad tokens from one source address back off exponentially (closed `4429`).
+- Upgrades carrying a browser `Origin` header are rejected; `Host` must be an IP
+  literal, `localhost`, or a configured `allowedHosts` entry (DNS-rebinding defense).
 
 ## Ordering & delivery guarantees
 
