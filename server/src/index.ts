@@ -1,5 +1,6 @@
 // Claude Micro companion server — WebSocket API over the Agent SDK.
 // Run on the Mac that has Claude Code authenticated. See specs/001-claude-micro/quickstart.md
+import { timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
@@ -12,6 +13,7 @@ interface Config {
   bind: string;
   port: number;
   defaultDepth: 0 | 1 | 2 | 3 | 4;
+  permissionTimeoutMs?: number | null;
   projects: { id: string; name: string; cwd: string }[];
   skills: Record<"up" | "down" | "left" | "right", { label: string; prompt: string }>;
 }
@@ -23,7 +25,7 @@ if (!config.token || config.token.length < 16) {
   process.exit(1);
 }
 
-const manager = new SessionManager(config.projects, config.defaultDepth);
+const manager = new SessionManager(config.projects, config.defaultDepth, config.permissionTimeoutMs ?? null);
 const authed = new Map<WebSocket, { device: string; name: string }>();
 
 const broadcast = (e: ServerEvent) => {
@@ -41,11 +43,21 @@ function wireSession(session: MicroSession): void {
     broadcast({ v: 1, type: "turn_result", sessionId: session.id, subtype, costUSD, durationMs, summary }));
 }
 
+/** Constant-time compare so the shared token can't be brute-forced via timing. */
+const tokenMatches = (candidate: string): boolean => {
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(config.token);
+  return a.length === b.length && timingSafeEqual(a, b);
+};
+
 const http = createServer((_req, res) => { res.writeHead(200); res.end("claude-micro ok\n"); });
-const wss = new WebSocketServer({ server: http, path: "/ws" });
+// maxPayload: unauthenticated peers must not be able to buffer huge frames (default is 100 MiB).
+const wss = new WebSocketServer({ server: http, path: "/ws", maxPayload: 1024 * 1024 });
+wss.on("error", (err) => console.error("wss error:", err.message));
 
 wss.on("connection", (ws) => {
   const fail = (code: string, message: string) => ws.send(event({ v: 1, type: "error", code, message }));
+  ws.on("error", () => ws.close()); // a socket error must never crash the server
 
   ws.on("message", (raw) => {
     let cmd: ClientCommand;
@@ -58,7 +70,7 @@ wss.on("connection", (ws) => {
     const client = authed.get(ws);
     if (!client) {
       if (cmd.type !== "hello") return ws.close(4401, "hello first");
-      if (cmd.token !== config.token) return ws.close(4401, "bad token");
+      if (!tokenMatches(cmd.token)) return ws.close(4401, "bad token");
       authed.set(ws, { device: cmd.device, name: cmd.name });
       return ws.send(event({ v: 1, type: "snapshot", ...manager.snapshot() }));
     }

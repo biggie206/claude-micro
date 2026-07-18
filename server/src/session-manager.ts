@@ -6,12 +6,16 @@ export class SessionManager {
   private sessions = new Map<string, MicroSession>();
   private activeId: string | null = null;
 
-  constructor(readonly projects: ProjectShape[], private defaultDepth: DepthLevel) {}
+  constructor(
+    readonly projects: ProjectShape[],
+    private defaultDepth: DepthLevel,
+    private permissionTimeoutMs: number | null = null,
+  ) {}
 
   create(projectId: string, depth?: DepthLevel): MicroSession {
     const project = this.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(`unknown_project:${projectId}`);
-    const session = new MicroSession(project.id, project.cwd, depth ?? this.defaultDepth);
+    const session = new MicroSession(project.id, project.cwd, depth ?? this.defaultDepth, this.permissionTimeoutMs);
     this.sessions.set(session.id, session);
     // MicroSession.id mutates from placeholder → SDK id on first init; re-key lazily in get().
     this.setActive(session.id);

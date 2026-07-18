@@ -12,6 +12,7 @@ const RISKY_PATTERNS = [/\brm\s+-rf?\b/i, /--force\b/, /\bsudo\b/, /force-push|p
 interface PendingInternal extends PendingPermissionShape {
   resolve: (r: { behavior: "allow"; updatedInput: Record<string, unknown> } | { behavior: "deny"; message: string }) => void;
   input: Record<string, unknown>;
+  timer?: NodeJS.Timeout;
 }
 
 export interface MicroSessionEvents {
@@ -41,7 +42,7 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
   private pending = new Map<string, PendingInternal>();
   private alwaysAllow = new Set<string>(); // toolName grants, session-scoped only
 
-  constructor(projectId: string, cwd: string, depth: DepthLevel) {
+  constructor(projectId: string, cwd: string, depth: DepthLevel, private permissionTimeoutMs: number | null = null) {
     super();
     this.id = `pending-${randomUUID()}`;
     this.projectId = projectId;
@@ -58,7 +59,7 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
   }
 
   pendingRequests(): PendingPermissionShape[] {
-    return [...this.pending.values()].map(({ resolve: _r, input: _i, ...shape }) => shape);
+    return [...this.pending.values()].map(({ resolve: _r, input: _i, timer: _t, ...shape }) => shape);
   }
 
   setDepth(level: DepthLevel): void {
@@ -114,6 +115,7 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
     const p = this.pending.get(requestId);
     if (!p) return false; // already resolved or unknown
     this.pending.delete(requestId);
+    if (p.timer) clearTimeout(p.timer);
     if (resolution === "allowed") {
       if (opts?.always) this.alwaysAllow.add(p.toolName);
       p.resolve({ behavior: "allow", updatedInput: p.input });
@@ -147,8 +149,15 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
     );
     this.pending.set(request.id, request);
     this.setStatus("needs_input");
-    const { resolve: _r, input: _i, ...shape } = request;
+    const { resolve: _r, input: _i, timer: _t, ...shape } = request;
     this.emit("permission", shape);
+    if (this.permissionTimeoutMs && this.permissionTimeoutMs > 0) {
+      // FR-003: configurable timeout (default none) auto-denies unresolved requests.
+      request.timer = setTimeout(() => {
+        this.resolvePermission(request.id, "denied", "system:timeout", { message: "permission request timed out" });
+      }, this.permissionTimeoutMs);
+      request.timer.unref?.();
+    }
     return promise;
   }
 
@@ -194,6 +203,7 @@ export class MicroSession extends EventEmitter<MicroSessionEvents> {
 
   private rejectAllPending(reason: string): void {
     for (const [id, p] of this.pending) {
+      if (p.timer) clearTimeout(p.timer);
       p.resolve({ behavior: "deny", message: reason });
       this.pending.delete(id);
       this.emit("permissionResolved", id, "denied", "system");
