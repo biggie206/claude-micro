@@ -24,6 +24,15 @@ npx wscat -c ws://127.0.0.1:8787/ws
 > {"v":1,"type":"prompt","sessionId":"<from snapshot/session_state>","text":"list the files here","source":"typed"}
 ```
 
+### Keep it running (launchd, optional)
+
+```bash
+sed -e "s|__REPO__|$PWD/..|g" -e "s|__NODE__|$(which node)|g" \
+  com.claudemicro.server.plist > ~/Library/LaunchAgents/com.claudemicro.server.plist
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.claudemicro.server.plist
+# stop: launchctl bootout gui/$UID/com.claudemicro.server · logs: /tmp/claude-micro.log
+```
+
 ## 2. Apple apps (Xcode 16+, ~15 min)
 
 ```bash

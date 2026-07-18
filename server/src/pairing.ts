@@ -11,6 +11,14 @@ export function lanHost(): string | null {
   return (ts ?? all[0])?.address ?? null;
 }
 
+/** Tailscale CGNAT range 100.64.0.0/10 — the encrypted-link case. */
+export function isTailscaleHost(host: string): boolean {
+  const m = host.match(/^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+  if (!m) return false;
+  const second = Number(m[1]);
+  return second >= 64 && second <= 127;
+}
+
 export function buildPairingUri(config: Config, tokenId?: string): { uri: string; tokenId: string; host: string } {
   const tokens = namedTokens(config);
   const chosen = tokenId ? tokens.find((t) => t.id === tokenId) : tokens[0];

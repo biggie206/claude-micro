@@ -35,5 +35,14 @@ project directories on the Mac that runs it.
 **Known non-goals / accepted risks**
 - Plain-LAN `ws://` is cleartext; the supported mitigation is Tailscale (WireGuard).
   TLS (`wss://`) is on the roadmap, not implemented.
+- The iOS app ships with `NSAllowsArbitraryLoads` (ATS open): Tailscale's CGNAT range is
+  not "local networking" to ATS, and iOS ignores `NSAllowsArbitraryLoads` when any
+  narrower exception key is present, so the open exception is the only way to reach the
+  Mac over `ws://`. The link itself is token-authenticated and Tailscale-encrypted;
+  replacing this with `wss://` + a scoped exception is tracked work.
+- The pairing QR (`npm run pair`) encodes the pairing token — treat the terminal like a
+  password field: pair on demand and clear scrollback afterward (the command prints a
+  reminder). One-time pairing tokens are a candidate improvement.
+- The audit log is written `0600`; it contains full tool inputs by design (forensics).
 - The server trusts its local configuration file and the Claude Code installation on
   the same machine.

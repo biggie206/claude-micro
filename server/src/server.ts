@@ -94,7 +94,7 @@ export function startServer(config: Config): { close: () => Promise<void>; shutd
   const audit = (entry: Record<string, unknown>): void => {
     if (config.auditLog === false) return;
     const path = config.auditLog ?? new URL("../claude-micro-audit.jsonl", import.meta.url).pathname;
-    appendFile(path, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n")
+    appendFile(path, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n", { mode: 0o600 })
       .catch((err) => console.error("audit write failed:", err?.message ?? err));
   };
 

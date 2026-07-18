@@ -22,11 +22,17 @@ if (pairFlag !== -1) {
   // token isn't left on screen during normal operation).
   const requestedId = process.argv[pairFlag + 1]?.startsWith("-") ? undefined : process.argv[pairFlag + 1];
   const { default: qrcode } = await import("qrcode-terminal");
-  const { buildPairingUri } = await import("./pairing.js");
+  const { buildPairingUri, isTailscaleHost } = await import("./pairing.js");
   const { uri, tokenId, host } = buildPairingUri(config, requestedId);
   console.log(`Pairing QR for token "${tokenId}" → ws://${host}:${config.port}/ws`);
+  if (!isTailscaleHost(host)) {
+    console.log("\n⚠  " + host + " is NOT a Tailscale address: the token and all traffic will cross");
+    console.log("   this network in CLEARTEXT. Prefer Tailscale on both devices (SECURITY.md).");
+  }
   console.log("Scan from Claude Micro on iPhone: Settings → Scan pairing QR\n");
   qrcode.generate(uri, { small: true });
+  console.log("\n⚠  This QR encodes your pairing token. Clear your terminal (⌘K) after scanning —");
+  console.log("   scrollback keeps it scannable, and anyone who scans it can control your sessions.");
   process.exit(0);
 }
 

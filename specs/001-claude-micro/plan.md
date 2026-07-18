@@ -159,6 +159,18 @@ status back to idle.
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
     suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
     (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - **On-device verification day (2026-07-18, iPhone 12 Pro Max + Watch Ultra 2)**:
+    QR pairing → Keychain → Tailscale connect verified (audit-logged). Wrist ✓-approval
+    of a live Bash gate → session resumed (US1 core loop PROVEN); phone-notification
+    approval measured 3.1s gate→approval (SC-001 PASS); crown→depth server-registered
+    live (T030/SC-003); FR-016 grant mint→visible→revoke exercised with audit entries;
+    needs-input + success haptics felt. Two client bugs found on hardware and fixed:
+    WCSession activation race (stash/flush) and a 2s reconnect loop (stale-socket
+    guards; 0 reauths/90s after). Open bugs filed: T058 watch ingest freeze, T059
+    aggregate-error stickiness, T060 App Shortcut not registering. T044 launchd agent
+    shipped. Post-hardening security re-review: repo exposure sweep CLEAN; GitHub
+    secret-scanning/push-protection confirmed, dependabot alerts+updates enabled;
+    pairing-QR scrollback warning, 0600 audit log, ATS tradeoff documented.
   - Bridge refactor (owner direction change, 2026-07-18): phone control pad retired —
     the official Claude app covers rich phone control, so the wrist is the product.
     iPhone app reduced to BridgeHomeView (relay + status + pending-gate safety card +

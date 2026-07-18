@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- T044: launchd agent so the companion server survives logouts, crashes, and reboots.
+     Install (replace __REPO__ with your checkout path, __NODE__ with `which node`):
+       sed -e "s|__REPO__|$HOME/Developer/claude-micro|g" -e "s|__NODE__|$(which node)|g" \
+         server/com.claudemicro.server.plist > ~/Library/LaunchAgents/com.claudemicro.server.plist
+       launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.claudemicro.server.plist
+     Stop:  launchctl bootout gui/$UID/com.claudemicro.server
+     Logs:  ~/Library/Logs/claude-micro.log -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.claudemicro.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>__REPO__/server/dist/index.js</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__/server</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/claude-micro.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/claude-micro.log</string>
+</dict>
+</plist>

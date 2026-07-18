@@ -5,8 +5,10 @@ import SwiftUI
 import VisionKit
 
 enum Pairing {
+    struct Parsed { let url: String, token: String }
+
     /// Parses a claudemicro://pair URI. Returns nil for anything else.
-    static func parse(_ raw: String) -> (url: String, token: String)? {
+    static func parse(_ raw: String) -> Parsed? {
         guard let c = URLComponents(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
               c.scheme == "claudemicro", c.host == "pair",
               let url = c.queryItems?.first(where: { $0.name == "url" })?.value,
@@ -14,7 +16,7 @@ enum Pairing {
               url.hasPrefix("ws://") || url.hasPrefix("wss://"),
               !token.isEmpty
         else { return nil }
-        return (url, token)
+        return Parsed(url: url, token: token)
     }
 }
 
@@ -22,6 +24,9 @@ struct PairingSheet: View {
     let onPaired: (String, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var rejected = false
+    /// Parsed but unconfirmed pairing — the user must see and accept the host before we
+    /// connect (a swapped/hostile QR must not silently repoint the app).
+    @State private var pendingPair: Pairing.Parsed?
 
     var body: some View {
         NavigationStack {
@@ -31,7 +36,7 @@ struct PairingSheet: View {
                 if DataScannerViewController.isSupported {
                     QRScannerView { payload in
                         if let pairing = Pairing.parse(payload) {
-                            onPaired(pairing.url, pairing.token)
+                            pendingPair = pairing
                             return true    // latch — stop scanning
                         }
                         rejected = true
@@ -48,6 +53,15 @@ struct PairingSheet: View {
             .navigationTitle("Scan pairing QR")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .alert("Pair with this server?",
+                   isPresented: Binding(get: { pendingPair != nil },
+                                        set: { if !$0 { pendingPair = nil } }),
+                   presenting: pendingPair) { pair in
+                Button("Connect") { onPaired(pair.url, pair.token) }
+                Button("Cancel", role: .cancel) { pendingPair = nil }
+            } message: { pair in
+                Text(pair.url)
+            }
             .overlay(alignment: .bottom) {
                 if rejected {
                     Text("Not a Claude Micro pairing code")

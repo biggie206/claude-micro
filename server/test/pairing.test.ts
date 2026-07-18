@@ -1,6 +1,6 @@
 // T055 (FR-020): pairing URI construction.
 import { describe, expect, it } from "vitest";
-import { buildPairingUri } from "../src/pairing.js";
+import { buildPairingUri, isTailscaleHost } from "../src/pairing.js";
 import type { Config } from "../src/server.js";
 
 const config = (over: Partial<Config> = {}): Config => ({
@@ -35,6 +35,16 @@ describe("buildPairingUri (FR-020)", () => {
   it("selects a named token and rejects unknown ids", () => {
     expect(buildPairingUri(config(), "spare").tokenId).toBe("spare");
     expect(() => buildPairingUri(config(), "nope")).toThrow(/unknown token id/);
+  });
+
+  it("isTailscaleHost matches only the 100.64.0.0/10 CGNAT range", () => {
+    expect(isTailscaleHost("100.64.0.1")).toBe(true);
+    expect(isTailscaleHost("100.127.255.254")).toBe(true);
+    expect(isTailscaleHost("100.70.204.61")).toBe(true);
+    expect(isTailscaleHost("100.63.0.1")).toBe(false);
+    expect(isTailscaleHost("100.128.0.1")).toBe(false);
+    expect(isTailscaleHost("192.168.1.10")).toBe(false);
+    expect(isTailscaleHost("mac.example.com")).toBe(false);
   });
 
   it("legacy single-token configs pair as \"shared\"", () => {

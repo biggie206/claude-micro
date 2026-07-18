@@ -42,7 +42,7 @@
 - [x] T018 [US1] Risky-tool heuristic + inputSummary truncation in `server/src/session.ts`
 - [x] T019 [P] [US1] iOS pending-request card + ✓/✕/Always buttons in `apple/iOS/Views/ControlPadView.swift`
 - [x] T020 [P] [US1] Watch pending view + ✓/✕ + `.notification` haptic in `apple/WatchApp/WatchControlView.swift`
-- [x] T021 [US1] E2E acceptance: run `npm run dev`, trigger Bash gate, approve from watch; verify SC-001 timing (2026-07-18: socket E2E verified — Bash gate → approve → resume + `already_resolved` on double-approve; watch-tap SC-001 timing still needs device, tracked in T035/T040 punch list)
+- [x] T021 [US1] E2E acceptance: run `npm run dev`, trigger Bash gate, approve from watch; verify SC-001 timing (2026-07-18: socket E2E verified — Bash gate → approve → resume + `already_resolved` on double-approve; watch-tap SC-001 timing still needs device, tracked in T035/T040 punch list) — **on-device 2026-07-18: wrist ✓-approval of a live Bash gate verified (session resumed, success haptic felt); phone-notification approval measured 3.1s gate→approval (SC-001 <5s PASS); grant mint/revoke lifecycle (FR-016) exercised end-to-end with audit entries**
 - [x] T022 [US1] vitest: protocol round-trip + single-resolution tests in `server/test/` (2026-07-18: 18 tests green, incl. FR-003 timeout + always-allow + risky heuristic)
 
 **Checkpoint**: MVP — US1 fully functional end-to-end.
@@ -52,14 +52,14 @@
 - [x] T023 [US2] iOS `apple/iOS/PTTController.swift` SFSpeechRecognizer hold-to-talk with live partials
 - [x] T024 [P] [US2] iOS PTT key (hold gesture, waveform/partial display) in ControlPadView
 - [x] T025 [P] [US2] Watch dictation via TextFieldLink → `prompt` in WatchControlView
-- [ ] T026 [US2] Empty-transcript guard test (AS-3) + mic/speech permission flows on device
+- [ ] T026 [US2] Empty-transcript guard test (AS-3) on device — watch dictation path (phone PTT retired by bridge refactor)
 
 ## Phase 5: User Story 3 — Thinking-depth dial (Priority: P3)
 
 - [x] T027 [US3] `set_depth` handling + apply-next-turn via resume (server, done in T008/T009)
 - [x] T028 [P] [US3] Watch crown binding: digitalCrownRotation 0–4, detent haptics, 300ms debounce
 - [x] T029 [P] [US3] iOS DepthDialView rotary gesture + level labels
-- [ ] T030 [US3] Acceptance: verify depth reflected in next turn (SC-003); crown/phone convergence (AS-3)
+- [x] T030 [US3] Acceptance: verify depth reflected in next turn (SC-003); crown/phone convergence (AS-3) (2026-07-18 on-device: crown rotations registered server-side in real time, observer-verified 4→3→4→0)
 
 ## Phase 6: User Story 4 — Status at a glance (Priority: P3)
 
@@ -67,7 +67,7 @@
 - [x] T032 [P] [US4] WidgetKit complication `apple/WatchWidget/StatusComplication.swift` (circular/corner/rectangular)
 - [x] T033 [P] [US4] iOS status banner (RGB analog) in ControlPadView
 - [x] T034 [US4] Local-notification mirroring for backgrounded watch (phone side), complication reload wiring (in scaffold: `WatchRelay.notify` + `PhoneLink.ingest` → `WidgetCenter.reloadAllTimelines`; behavior verified on device under T035)
-- [ ] T035 [US4] Haptic distinguishability test per SC-004
+- [ ] T035 [US4] Haptic distinguishability test per SC-004 (2026-07-18: needs-input + success patterns felt and confirmed on device; formal blind test incl. error pattern pending)
 
 ## Phase 7: User Story 5 — Sessions (Priority: P4)
 
@@ -78,7 +78,7 @@
 ## Phase 8: Action Button & Polish
 
 - [x] T039 PrimaryActionIntent (approve-if-pending else dictation) in `apple/WatchApp/PrimaryActionIntent.swift`
-- [ ] T040 On watch: Settings → Action Button → Shortcut → bind "Claude Primary Action"; verify launch→perform <30s path
+- [ ] T040 On watch: Settings → Action Button → Shortcut → bind "Claude Primary Action"; verify launch→perform <30s path — blocked on T060 (shortcut absent from picker on device)
 - [x] T041 Skill pad 4-way swipe gestures on iOS (server `skill` command already implemented) (in scaffold: `ControlPadView.skillPad` DragGesture)
 - [ ] T042 Tailscale docs + bind config for away-from-home use (quickstart.md §Remote)
 - [ ] T043 [P] Stretch: APNs push for watch haptics when phone app killed
@@ -95,6 +95,10 @@
 - [x] T053 [Sec] SECURITY.md + threat model; CI `npm audit` gate; dependabot (npm + actions) (2026-07-18)
 - [x] T054 [US1] Actionable notifications (FR-019): category + Approve/Deny actions, risky = no Approve, notification-action → command forwarding, offline outbox flush on reconnect (2026-07-18: implemented + compiles; notification-action behavior still needs on-device verification alongside T026)
 - [x] T057 Bridge refactor (FR-005 amended, 2026-07-18): phone control pad removed — ControlPadView/DepthDialView/SessionsView/PTTController deleted; single BridgeHomeView (status, pending-gate card, pairing, grants); supersedes the phone halves of T019/T023/T024/T029/T033/T037/T041; signing team + App Group entitlements pinned in project.yml
+- [ ] T058 **BUG** Watch context-ingest freeze: with the watch app foregrounded, live session_state changes (verified flowing server-side) did not update the UI; earlier the same link delivered the pending card + crown worked. Debug first: on-watch "last context received" timestamp in WatchControlView + PhoneLink ingest logging
+- [ ] T059 Aggregate-status UX: one errored background session paints the watch red until re-touched (observed on device); consider error decay or active-session weighting in `AppState.overallStatus` / watch `overall`
+- [ ] T060 Action-button App Shortcut not appearing in watchOS Shortcut picker after install; add explicit `ClaudeMicroShortcuts.updateAppShortcutParameters()` on watch app launch and re-verify (unblocks T040)
+- [ ] T061 [Sec] One-time pairing codes: `--pair` should mint a short-lived code exchanged for the real token on first connect, instead of embedding the permanent token in the QR (2026-07-18 security re-review, low)
 - [x] T055 [Setup] QR pairing (FR-020): server `--pair` QR emitter (pairHost/LAN detection) + iOS VisionKit scanner in Settings, `claudemicro://pair` parsing (2026-07-18: `npm run pair` renders QR live w/ Tailscale IP auto-detect; scan flow needs device camera)
 
 ## Dependencies & Execution Order
