@@ -12,14 +12,21 @@ accept/reject keys, push-to-talk voice prompting, a rotary dial for agent "think
 a joystick for skills, and RGB lighting that reflects agent status (idle / thinking /
 complete / needs input / error). Claude Micro recreates that control surface in software:
 
+> **Direction change (2026-07-18)**: the iPhone app is a **bridge, not a control pad**.
+> The official Claude app already covers rich phone-side control of Claude, so the phone
+> keeps only what the watch needs (WebSocket relay) plus safety/admin surfaces: QR
+> pairing, connection status, a pending-gate card (notification tap-through incl. risky
+> confirmation), grant management, and actionable notifications. The **watch is the
+> product** — the wrist surface is what nothing else offers.
+
 | Codex Micro hardware        | Claude Micro equivalent                                        |
 |-----------------------------|----------------------------------------------------------------|
-| Accept / Reject keys        | Phone key grid buttons; Watch buttons; Action button (context) |
-| Push-to-talk key            | Phone hold-to-talk key; Watch Action button → dictation        |
-| Rotary dial (thinking depth)| Phone on-screen dial; Watch **Digital Crown** with haptic detents |
-| Joystick (4-way skills)     | Phone swipe pad mapped to 4 custom skills/commands             |
-| RGB status lighting         | Phone status banner colors; Watch complication + haptic taps   |
-| 13 remappable keys / layers | Phone key grid with remappable actions (config on server)      |
+| Accept / Reject keys        | Watch ✓/✕ + **Action button** (context); phone notification actions + pending-gate card |
+| Push-to-talk key            | Watch Action button → dictation                                |
+| Rotary dial (thinking depth)| Watch **Digital Crown**, 5 detents with haptics                |
+| Joystick (4-way skills)     | Server-side skill bindings (client surface deferred)           |
+| RGB status lighting         | Watch complication + distinct haptic per event; phone notifications |
+| Layers / remappable keys    | Watch session picker + config-driven skills                    |
 
 Sessions are real Claude Code sessions running on the user's Mac (same auth, same repos,
 same CLAUDE.md), owned by a Mac-resident companion server built on the Claude Agent SDK.
@@ -57,6 +64,9 @@ other features present.
 ---
 
 ### User Story 2 - Push-to-talk voice prompting (Priority: P2)
+
+> *Amended 2026-07-18 (bridge direction)*: the watch dictation path is the product's
+> voice input; the phone hold-to-talk scenarios below are retired with the control pad.
 
 Tom holds the mic key on his phone (or presses the Action button on his watch when nothing
 is pending), speaks "also add tests for the edge cases we discussed", releases, and the
@@ -179,9 +189,12 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
 - **FR-004**: Clients MUST be able to approve, approve-always (per tool+session), or deny
   (with optional message) any pending permission request; the server MUST enforce
   single-resolution semantics.
-- **FR-005**: The iPhone app MUST provide a Codex-Micro-style control pad: accept, reject,
-  PTT (hold-to-talk with live transcription via SFSpeechRecognizer), interrupt, new
-  session, session switcher, 4-way skill pad, and a thinking-depth dial.
+- **FR-005** *(amended 2026-07-18)*: The iPhone app MUST act as the watch's bridge and
+  safety surface: hold the WebSocket + WatchConnectivity relay, QR pairing, connection
+  status, a pending-permission card (with the risky confirmation flow that notification
+  tap-through lands on), and grant management. It MUST NOT duplicate rich chat/control
+  UI (control pad, transcript, depth dial, session browser — superseded by the official
+  Claude app and the watch).
 - **FR-006**: The watch app MUST map the Digital Crown to thinking depth (5 detents,
   haptic per detent) while foregrounded.
 - **FR-007**: The watch app MUST expose a `Primary Action` App Intent, assignable to the
@@ -190,20 +203,22 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
 - **FR-008**: The watch MUST communicate exclusively through the paired iPhone via
   WatchConnectivity (application context for state; messages for commands); it MUST NOT
   open raw sockets (TN3135 compliance).
-- **FR-009**: The system MUST reflect session status (idle / thinking / working /
-  needs-input / complete / error) as: colored banner on iPhone, WidgetKit complication
-  (accessoryCircular + accessoryCorner + accessoryRectangular) on watch, and distinct
-  haptic patterns for needs-input, complete, and error transitions.
+- **FR-009** *(amended 2026-07-18)*: The system MUST reflect session status (idle /
+  thinking / working / needs-input / complete / error) as: WidgetKit complication
+  (accessoryCircular + accessoryCorner + accessoryRectangular) on watch, distinct haptic
+  patterns for needs-input, complete, and error transitions, phone notifications
+  (FR-019), and a compact status line in the bridge app.
 - **FR-010**: Thinking depth MUST map to SDK thinking configuration levels (Off / Light /
   Standard / Deep / Max) applied at the next turn via session resume, preserving context.
 - **FR-011**: The server MUST support interrupting a running turn and starting a new
   session in any allowlisted project directory.
-- **FR-012**: The 4-way skill pad MUST be remappable via server config (default: Up=/review
-  changes, Down=/commit, Left=explain last error, Right=run tests).
+- **FR-012** *(amended 2026-07-18)*: Skill bindings MUST remain remappable via server
+  config and invocable via the `skill` protocol command; a client surface for them is
+  deferred (candidate: watch list/menu) now that the phone pad is removed.
 - **FR-013**: The server MUST only bind to loopback and Tailscale interfaces by default
   and require the shared token on every connection.
-- **FR-014**: All streaming assistant text MUST be delivered to the phone as deltas
-  (target: first token visible < 1s after SDK emits it on LAN).
+- **FR-014** *(amended 2026-07-18)*: Streaming assistant text MUST remain available as
+  protocol deltas (future surfaces); the bridge app no longer renders a transcript.
 - **FR-015**: The server MUST keep an append-only audit log of every permission
   resolution (tool name, full tool input, risky flag, resolution, resolver identity,
   timestamp), enabled by default — approvals execute code and MUST be attributable.

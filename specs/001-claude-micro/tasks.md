@@ -94,6 +94,7 @@
 - [x] T052 [Sec] Grants in session state + `revoke_grant` command (FR-016): protocol.ts, contract doc, Models.swift, iOS Settings grants UI (2026-07-18)
 - [x] T053 [Sec] SECURITY.md + threat model; CI `npm audit` gate; dependabot (npm + actions) (2026-07-18)
 - [x] T054 [US1] Actionable notifications (FR-019): category + Approve/Deny actions, risky = no Approve, notification-action → command forwarding, offline outbox flush on reconnect (2026-07-18: implemented + compiles; notification-action behavior still needs on-device verification alongside T026)
+- [x] T057 Bridge refactor (FR-005 amended, 2026-07-18): phone control pad removed — ControlPadView/DepthDialView/SessionsView/PTTController deleted; single BridgeHomeView (status, pending-gate card, pairing, grants); supersedes the phone halves of T019/T023/T024/T029/T033/T037/T041; signing team + App Group entitlements pinned in project.yml
 - [x] T055 [Setup] QR pairing (FR-020): server `--pair` QR emitter (pairHost/LAN detection) + iOS VisionKit scanner in Settings, `claudemicro://pair` parsing (2026-07-18: `npm run pair` renders QR live w/ Tailscale IP auto-detect; scan flow needs device camera)
 
 ## Dependencies & Execution Order

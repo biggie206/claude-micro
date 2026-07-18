@@ -2,10 +2,12 @@
 
 [![CI](https://github.com/biggie206/claude-micro/actions/workflows/ci.yml/badge.svg)](https://github.com/biggie206/claude-micro/actions/workflows/ci.yml)
 
-The [Work Louder Codex Micro](https://worklouder.cc/codex-micro), reimagined as software:
-control **Claude Code sessions on your Mac** from an **iPhone 12 Pro Max** control pad and
-an **Apple Watch Ultra 2** — Digital Crown as the thinking-depth dial, Action button as
-context-aware approve / push-to-talk, complication + haptics as the RGB status lighting.
+The [Work Louder Codex Micro](https://worklouder.cc/codex-micro), reimagined for the
+wrist: control **Claude Code sessions on your Mac** from an **Apple Watch Ultra 2** —
+Digital Crown as the thinking-depth dial, Action button as context-aware approve /
+push-to-talk, complication + haptics as the RGB status lighting. The iPhone app is a
+thin **bridge** (watchOS can't open sockets — TN3135): it relays the WebSocket, pairs
+via QR, surfaces actionable approve/deny notifications, and manages always-allow grants.
 
 ```
 Mac (companion server, Claude Agent SDK)
@@ -20,7 +22,7 @@ Mac (companion server, Claude Agent SDK)
 | `specs/001-claude-micro/` | **GitHub Spec Kit** artifacts: spec, plan, research, data model, WS protocol contract, tasks |
 | `.specify/memory/constitution.md` | Project constitution |
 | `server/` | Node/TS companion server (typechecks clean; `npm run dev`) |
-| `apple/` | XcodeGen manifest + SwiftUI sources for iOS app, watch app, watch complication |
+| `apple/` | XcodeGen manifest + SwiftUI sources: watch app + complication (the product), iOS bridge app |
 
 ## Start here
 
@@ -33,12 +35,12 @@ Mac (companion server, Claude Agent SDK)
 
 | Micro hardware | Here |
 |---|---|
-| Accept / Reject keys | Phone keys · Watch ✓/✕ · **Action button** (when a gate is pending) |
-| Push-to-talk key | Phone hold-to-talk (live transcription) · Watch Action button → dictation |
-| Rotary dial (thinking depth) | Phone dial · **Digital Crown**, 5 detents w/ haptics, applies next turn |
-| Joystick skills | 4-way swipe pad, server-remappable (`claude-micro.config.json`) |
-| RGB status lighting | Status banner · watch complication · distinct haptic per event |
-| Layers / remappable keys | Sessions switcher + config-driven skills |
+| Accept / Reject keys | Watch ✓/✕ · **Action button** (when a gate is pending) · phone notification actions |
+| Push-to-talk key | Watch Action button → dictation |
+| Rotary dial (thinking depth) | **Digital Crown**, 5 detents w/ haptics, applies next turn |
+| Joystick skills | Server-remappable skill bindings (`claude-micro.config.json`) |
+| RGB status lighting | Watch complication · distinct haptic per event · phone notifications |
+| Layers / remappable keys | Watch session picker + config-driven skills |
 
 ## Security posture
 

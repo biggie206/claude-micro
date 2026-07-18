@@ -11,7 +11,6 @@ final class AppState: ObservableObject {
     @Published var activeSessionId: String?
     @Published var connected = false
     @Published var stale = true            // Constitution VI: never show stale as live
-    @Published var transcript: [String: String] = [:]   // sessionId → streamed text (tail)
 
     var activeSession: Session? { sessions.first { $0.id == activeSessionId } ?? sessions.first { $0.active } }
     var activePending: PendingPermission? {
@@ -43,12 +42,8 @@ final class AppState: ObservableObject {
             else { sessions.append(session) }
             if session.active { activeSessionId = session.id }
             return nil
-        case let .assistantDelta(sessionId, text):
-            transcript[sessionId, default: ""] += text
-            transcript[sessionId] = String(transcript[sessionId]!.suffix(4000))
-            return nil
-        case .toolActivity:
-            return nil
+        case .assistantDelta, .toolActivity:
+            return nil   // bridge app renders no transcript (FR-014 amended); protocol keeps deltas
         case let .permissionRequest(request):
             if !pending.contains(where: { $0.id == request.id }) { pending.append(request) }
             return .needsInput

@@ -159,6 +159,12 @@ status back to idle.
     1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
     suggests `0.0.0.0` bind; MIT LICENSE added; iOS token moved to Keychain
     (migration deletes the legacy UserDefaults copy only after a verified round-trip).
+  - Bridge refactor (owner direction change, 2026-07-18): phone control pad retired —
+    the official Claude app covers rich phone control, so the wrist is the product.
+    iPhone app reduced to BridgeHomeView (relay + status + pending-gate safety card +
+    QR pairing + grant management + actionable notifications). Spec FR-005/009/012/014
+    and US2 amended; T057. Signing (team S4XWNBC3N9) + watch App Group entitlements
+    pinned in project.yml so xcodegen regeneration preserves them.
   - Robustness pass (FR-021, T046/T056): boot-time re-listing of resumable on-disk
     sessions (idle "(resumable)", capped/project, next prompt resumes with context),
     server-side heartbeat culling dead sockets, SIGINT/SIGTERM graceful shutdown

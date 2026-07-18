@@ -8,7 +8,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.10"
-    DEVELOPMENT_TEAM: ""   # set your Apple Developer team ID
+    DEVELOPMENT_TEAM: S4XWNBC3N9   # Tom Nguyen (Personal Team)
 
 targets:
   ClaudeMicro:
@@ -19,13 +19,10 @@ targets:
       path: iOS/Info.plist
       properties:
         UILaunchScreen: {}
-        NSMicrophoneUsageDescription: "Push-to-talk voice prompts for your Claude sessions."
-        NSSpeechRecognitionUsageDescription: "Transcribes your voice prompts on-device before sending them to your Mac."
         NSLocalNetworkUsageDescription: "Connects to the Claude Micro companion server running on your Mac."
         NSCameraUsageDescription: "Scans the pairing QR code shown by the claude-micro server on your Mac."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        UIBackgroundModes: [audio]
     dependencies:
       - target: ClaudeMicroWatch
     settings:
@@ -38,6 +35,10 @@ targets:
     type: application
     platform: watchOS
     sources: [Shared, WatchApp]
+    entitlements:
+      path: ClaudeMicroWatch.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.tomnguyen.claudemicro]
     info:
       path: WatchApp/Info.plist
       properties:
@@ -55,6 +56,10 @@ targets:
     type: app-extension
     platform: watchOS
     sources: [Shared/Models.swift, WatchWidget]
+    entitlements:
+      path: ClaudeMicroWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.tomnguyen.claudemicro]
     info:
       path: WatchWidget/Info.plist
       properties:
