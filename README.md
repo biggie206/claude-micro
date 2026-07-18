@@ -1,5 +1,7 @@
 # Claude Micro
 
+[![CI](https://github.com/biggie206/claude-micro/actions/workflows/ci.yml/badge.svg)](https://github.com/biggie206/claude-micro/actions/workflows/ci.yml)
+
 The [Work Louder Codex Micro](https://worklouder.cc/codex-micro), reimagined as software:
 control **Claude Code sessions on your Mac** from an **iPhone 12 Pro Max** control pad and
 an **Apple Watch Ultra 2** — Digital Crown as the thinking-depth dial, Action button as
