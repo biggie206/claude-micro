@@ -2,6 +2,7 @@
 // pending-gate safety card notifications tap into, and grant management.
 // Rich control lives on the watch; rich chat lives in the official Claude app.
 import SwiftUI
+import WatchConnectivity
 
 struct BridgeHomeView: View {
     @EnvironmentObject var state: AppState
@@ -16,6 +17,7 @@ struct BridgeHomeView: View {
                     PermissionSection(request: request)
                 }
                 serverSection
+                watchLinkSection
                 grantsSection
                 Section {
                     Text("Control lives on your watch: crown = thinking depth, Action button = approve / dictate. Set it under Watch Settings → Action Button → Shortcut → “Claude Primary Action”.")
@@ -80,6 +82,32 @@ struct BridgeHomeView: View {
                 }
             }
         }
+    }
+
+    /// Live WCSession truth — the three flags that decide whether the watch gets anything.
+    private var watchLinkSection: some View {
+        Section("Watch link") {
+            TimelineView(.periodic(from: .now, by: 2)) { _ in
+                let s = WCSession.isSupported() ? WCSession.default : nil
+                VStack(alignment: .leading, spacing: 6) {
+                    linkRow("Paired", s?.isPaired ?? false)
+                    linkRow("Watch app installed", s?.isWatchAppInstalled ?? false)
+                    linkRow("Reachable now", s?.isReachable ?? false)
+                    Text("Activation: \((s?.activationState == .activated) ? "activated" : "not activated")")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func linkRow(_ label: String, _ ok: Bool) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Circle().fill(ok ? .green : .red).frame(width: 8, height: 8)
+            Text(ok ? "Yes" : "No").foregroundStyle(.secondary)
+        }
+        .font(.subheadline)
     }
 
     @ViewBuilder

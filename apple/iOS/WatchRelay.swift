@@ -10,6 +10,11 @@ final class WatchRelay: NSObject, WCSessionDelegate {
     /// Set by ServerConnection: forwards watch commands to the server.
     var onCommand: (@MainActor (ClientCommand) -> Void)?
 
+    /// Context that arrived before WCSession finished activating. The reconnect snapshot
+    /// fires within ms of launch — reliably losing the activation race — and with no
+    /// retry the watch would stay stale until the next server event ("gray dot forever").
+    private var pendingContext: [String: Any]?
+
     /// Notification categories (FR-019). Risky requests get NO Approve action —
     /// a lock-screen button is a single tap, and Constitution V requires a distinct
     /// confirmation gesture; tapping the risky notification opens the in-app flow.
@@ -34,19 +39,15 @@ final class WatchRelay: NSObject, WCSessionDelegate {
 
     @MainActor
     func pushState(_ state: AppState, haptic: HapticSignal?) {
-        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
-        let context: [String: Any] = [
-            "stale": state.stale,
-            "activeSessionId": state.activeSessionId ?? "",
-            "depth": state.activeSession?.depth ?? 2,
-            "overall": state.overallStatus.rawValue,
-            "sessions": state.sessions.map { ["id": $0.id, "projectId": $0.projectId, "status": $0.status.rawValue, "depth": $0.depth, "snippet": $0.lastSnippet] },
-            "pending": state.pending.map { ["id": $0.id, "sessionId": $0.sessionId, "toolName": $0.toolName, "summary": $0.inputSummary, "risky": $0.risky] },
-        ]
-
+        guard WCSession.isSupported() else { return }
+        guard WCSession.default.activationState == .activated else {
+            pendingContext = Self.context(for: state)   // flush when activation completes
+            return
+        }
         // SC-005: callers gate on watch-relevant events (ServerConnection.watchRelevant),
         // so this only runs on real state transitions — latest-wins, background-safe.
-        try? WCSession.default.updateApplicationContext(context)
+        pendingContext = nil
+        try? WCSession.default.updateApplicationContext(Self.context(for: state))
 
         if let haptic {
             if WCSession.default.isReachable {
@@ -55,6 +56,18 @@ final class WatchRelay: NSObject, WCSessionDelegate {
                 notify(for: haptic, state: state)   // background watch → notification mirrors to wrist
             }
         }
+    }
+
+    @MainActor
+    private static func context(for state: AppState) -> [String: Any] {
+        [
+            "stale": state.stale,
+            "activeSessionId": state.activeSessionId ?? "",
+            "depth": state.activeSession?.depth ?? 2,
+            "overall": state.overallStatus.rawValue,
+            "sessions": state.sessions.map { ["id": $0.id, "projectId": $0.projectId, "status": $0.status.rawValue, "depth": $0.depth, "snippet": $0.lastSnippet] },
+            "pending": state.pending.map { ["id": $0.id, "sessionId": $0.sessionId, "toolName": $0.toolName, "summary": $0.inputSummary, "risky": $0.risky] },
+        ]
     }
 
     @MainActor
@@ -113,7 +126,14 @@ final class WatchRelay: NSObject, WCSessionDelegate {
         }
     }
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        // Flush any context that lost the launch/activation race (the reconnect snapshot).
+        Task { @MainActor in
+            guard activationState == .activated, let context = self.pendingContext else { return }
+            self.pendingContext = nil
+            try? session.updateApplicationContext(context)
+        }
+    }
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) { session.activate() }
 }

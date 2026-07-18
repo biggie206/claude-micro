@@ -21,12 +21,12 @@ targets:
         UILaunchScreen: {}
         NSLocalNetworkUsageDescription: "Connects to the Claude Micro companion server running on your Mac."
         NSCameraUsageDescription: "Scans the pairing QR code shown by the claude-micro server on your Mac."
-        # ws:// to the Mac: local networking covers LAN IPs, but Tailscale's 100.x CGNAT
-        # range is not "local" to ATS — arbitrary loads is required for the ws bridge.
-        # Acceptable: the link is token-authenticated and Tailscale-encrypted (SECURITY.md).
+        # ws:// to the Mac: Tailscale's 100.x CGNAT range is not "local" to ATS, so the
+        # bridge needs NSAllowsArbitraryLoads — and it must stand ALONE: iOS ignores
+        # ArbitraryLoads whenever a narrower NSAllows* key (e.g. LocalNetworking) is
+        # also present. Acceptable: link is token-authenticated + Tailscale-encrypted.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-          NSAllowsLocalNetworking: true
     dependencies:
       - target: ClaudeMicroWatch
     settings:
