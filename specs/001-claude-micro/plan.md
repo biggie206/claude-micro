@@ -131,6 +131,34 @@ status back to idle.
 - **Phase 2 (tasks)**: complete → [tasks.md](./tasks.md)
 - **Implementation status**: scaffold generated for server + all Apple targets; remaining
   work tracked in tasks.md (notably: Xcode signing, APNs stretch, TestFlight).
+- **2026-07-18 implementation pass** (Claude Code):
+  - `/speckit.analyze` run (T045): 8 findings fixed — Constitution V distinct risky-approve
+    gesture added (phone + watch confirmation dialogs); FR-003 `permissionTimeoutMs`
+    implemented server-side; contract `list_projects` reply corrected to `snapshot`;
+    `interrupted` added to status semantics; Action-button pending scoped to active
+    session (spec Edge Cases); T004 marked done; T046 added (restart re-list); data-model
+    config example aligned.
+  - T005 done: `npm install` + `tsc` green. Config created (48-char token, loopback bind,
+    `claude-micro` project).
+  - T021/T022 done: live socket E2E (bad-token 4401, Bash gate → approve → resume,
+    double-approve → `already_resolved`); 18 vitest tests green.
+  - T006 nearly done: xcodegen generates cleanly (`WKApplication` added to watch Info.plist);
+    after Xcode 26.6 install, `ClaudeMicro` (iOS Simulator) and `ClaudeMicroWatch`
+    (watchOS Simulator) both **BUILD SUCCEEDED** with zero Swift errors; only manual
+    signing clicks remain (team + App Group on watch targets).
+  - Post-review pass: 8 confirmed review findings fixed (gitignore token leak risk, risky
+    one-tap bypass on grid key, stale dialog rebind on both platforms, Action-button/card
+    divergence, timeout race surfacing, doc placement, timer leak).
+  - T047 UI/UX+perf: ATS `NSAllowsLocalNetworking` + `NSLocalNetworkUsageDescription`
+    (ws:// to LAN was ATS-blocked), WatchConnectivity context throttling for SC-005
+    (significant changes immediate, token churn coalesced to ≤1/s), control-pad press
+    haptics/disabled states/empty states/accessibility, transcript autoscroll, dial
+    gesture rework with detent haptics, session rows with relative time+cost, app icons
+    (generated dial motif) on both apps.
+  - T048 security: git history verified secret-free; constant-time token compare;
+    1 MiB WS maxPayload; socket error handlers (crash-DoS); quickstart no longer
+    suggests `0.0.0.0` bind. Open before public push: LICENSE choice, iOS token
+    UserDefaults→Keychain.
 
 ## Complexity Tracking
 

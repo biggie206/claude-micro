@@ -19,7 +19,7 @@ Zod schemas in `server/src/protocol.ts` are the normative source; this document 
 | `interrupt` | `{ sessionId }` | SDK `query.interrupt()` |
 | `set_depth` | `{ sessionId?, level: 0..4 }` | omitted sessionId ⇒ active session; applies next turn |
 | `skill` | `{ sessionId?, direction: "up"\|"down"\|"left"\|"right" }` | server expands binding → `prompt` |
-| `list_projects` | `{}` | reply `projects` |
+| `list_projects` | `{}` | reply `snapshot` (projects are part of the snapshot; no separate event) |
 | `ping` | `{ t }` | reply `pong { t }` |
 
 ## Server → Client (events)
@@ -57,7 +57,8 @@ Project = { id: string; name: string; cwd: string }
 ## Status semantics (RGB analog)
 
 `idle` gray · `thinking` purple pulse · `working` blue · `needs_input` amber (haptic
-`.notification`) · `complete` green (haptic `.success`) · `error` red (haptic `.failure`).
+`.notification`) · `complete` green (haptic `.success`) · `error` red (haptic `.failure`) ·
+`interrupted` yellow (no haptic).
 
 ## Ordering & delivery guarantees
 

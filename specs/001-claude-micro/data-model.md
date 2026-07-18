@@ -56,7 +56,8 @@ config (see research.md R4).
   "bind": "127.0.0.1",
   "port": 8787,
   "defaultDepth": 2,
-  "projects": [ { "id": "kbapp", "name": "LLM keyboard app", "cwd": "/Users/tom/code/llm-keyboard" } ],
+  "permissionTimeoutMs": null,
+  "projects": [ { "id": "kbapp", "name": "LLM keyboard app", "cwd": "/Users/tom/code/llm-keyboard-app" } ],
   "skills": {
     "up":    { "label": "Review",  "prompt": "Review the current diff and summarize risks in 5 bullets." },
     "down":  { "label": "Commit",  "prompt": "Stage and commit the current work with a good message." },
@@ -65,6 +66,10 @@ config (see research.md R4).
   }
 }
 ```
+
+`permissionTimeoutMs` is a **top-level** config key (optional, default null = none): if
+set, an unresolved PendingPermission is auto-denied after this many ms (FR-003). It is
+not a per-project field.
 
 ## Client-side stores
 

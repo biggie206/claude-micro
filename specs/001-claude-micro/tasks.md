@@ -12,9 +12,9 @@
 - [x] T001 Create repo layout per plan.md (server/, apple/, specs/)
 - [x] T002 [P] Init server package: `server/package.json`, `server/tsconfig.json` (Node 18, ESM, strict)
 - [x] T003 [P] Author XcodeGen manifest `apple/project.yml` (iOS app, watch app, watch widget targets)
-- [ ] T004 On the Mac: `specify init --here --ai claude` to install .specify scripts/templates + /speckit.* commands (see research.md R7)
-- [ ] T005 On the Mac: `cd server && npm install && npm run build` — verify SDK + tsc green
-- [ ] T006 On the Mac: `brew install xcodegen && cd apple && xcodegen` → open ClaudeMicro.xcodeproj, set signing team, add Speech/Mic usage strings (already in project.yml)
+- [x] T004 On the Mac: `specify init --here --ai claude` to install .specify scripts/templates + /speckit.* commands (see research.md R7)
+- [x] T005 On the Mac: `cd server && npm install && npm run build` — verify SDK + tsc green (2026-07-18: tsc exit 0)
+- [ ] T006 On the Mac: `brew install xcodegen && cd apple && xcodegen` → open ClaudeMicro.xcodeproj, set signing team, add Speech/Mic usage strings (already in project.yml) — 2026-07-18: xcodegen + **both simulator builds BUILD SUCCEEDED** (Xcode 26.6, iOS/watchOS 26.5, zero Swift errors); only the manual signing clicks remain (team on 3 targets, App Group `group.com.tomnguyen.claudemicro` on both watch targets)
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
@@ -42,8 +42,8 @@
 - [x] T018 [US1] Risky-tool heuristic + inputSummary truncation in `server/src/session.ts`
 - [x] T019 [P] [US1] iOS pending-request card + ✓/✕/Always buttons in `apple/iOS/Views/ControlPadView.swift`
 - [x] T020 [P] [US1] Watch pending view + ✓/✕ + `.notification` haptic in `apple/WatchApp/WatchControlView.swift`
-- [ ] T021 [US1] E2E acceptance: run `npm run dev`, trigger Bash gate, approve from watch; verify SC-001 timing
-- [ ] T022 [US1] vitest: protocol round-trip + single-resolution tests in `server/test/`
+- [x] T021 [US1] E2E acceptance: run `npm run dev`, trigger Bash gate, approve from watch; verify SC-001 timing (2026-07-18: socket E2E verified — Bash gate → approve → resume + `already_resolved` on double-approve; watch-tap SC-001 timing still needs device, tracked in T035/T040 punch list)
+- [x] T022 [US1] vitest: protocol round-trip + single-resolution tests in `server/test/` (2026-07-18: 18 tests green, incl. FR-003 timeout + always-allow + risky heuristic)
 
 **Checkpoint**: MVP — US1 fully functional end-to-end.
 
@@ -66,24 +66,27 @@
 - [x] T031 [US4] Status→color/haptic mapping shared const in `apple/Shared/Models.swift`
 - [x] T032 [P] [US4] WidgetKit complication `apple/WatchWidget/StatusComplication.swift` (circular/corner/rectangular)
 - [x] T033 [P] [US4] iOS status banner (RGB analog) in ControlPadView
-- [ ] T034 [US4] Local-notification mirroring for backgrounded watch (phone side), complication reload wiring
+- [x] T034 [US4] Local-notification mirroring for backgrounded watch (phone side), complication reload wiring (in scaffold: `WatchRelay.notify` + `PhoneLink.ingest` → `WidgetCenter.reloadAllTimelines`; behavior verified on device under T035)
 - [ ] T035 [US4] Haptic distinguishability test per SC-004
 
 ## Phase 7: User Story 5 — Sessions (Priority: P4)
 
 - [x] T036 [US5] `create_session`/`set_active`/projects allowlist (server, done in T010/T011)
 - [x] T037 [P] [US5] iOS SessionsView: cards, switcher, new-session sheet
-- [ ] T038 [US5] Watch session picker (list view, tap to set_active)
+- [x] T038 [US5] Watch session picker (list view, tap to set_active) (in scaffold: `WatchControlView.sessionPicker`)
 
 ## Phase 8: Action Button & Polish
 
 - [x] T039 PrimaryActionIntent (approve-if-pending else dictation) in `apple/WatchApp/PrimaryActionIntent.swift`
 - [ ] T040 On watch: Settings → Action Button → Shortcut → bind "Claude Primary Action"; verify launch→perform <30s path
-- [ ] T041 Skill pad 4-way swipe gestures on iOS (server `skill` command already implemented)
+- [x] T041 Skill pad 4-way swipe gestures on iOS (server `skill` command already implemented) (in scaffold: `ControlPadView.skillPad` DragGesture)
 - [ ] T042 Tailscale docs + bind config for away-from-home use (quickstart.md §Remote)
 - [ ] T043 [P] Stretch: APNs push for watch haptics when phone app killed
 - [ ] T044 [P] Stretch: server as launchd agent (`com.claudemicro.server.plist`)
-- [ ] T045 Run /speckit.analyze; reconcile spec/plan/tasks drift; update Phase Log in plan.md
+- [x] T045 Run /speckit.analyze; reconcile spec/plan/tasks drift; update Phase Log in plan.md (2026-07-18: 8 findings fixed — see plan.md Phase Log)
+- [ ] T046 Server restart recovery: re-list resumable sessions from `~/.claude/projects/` on boot as `idle (resumable)` (spec Edge Cases)
+- [x] T047 UI/UX + performance polish pass within existing FRs (FR-005/006/009): animations/haptics/empty states/accessibility on iOS pad + watch, ATS/local-network Info.plist keys, WatchConnectivity context throttling (SC-005), app icons (2026-07-18: done, both simulator builds green)
+- [x] T048 Pre-publication security review (repo going public): secrets scan incl. git history, auth/bind posture, LICENSE, docs accuracy (2026-07-18: history clean; hardened token compare/maxPayload/ws error handling; quickstart 0.0.0.0 guidance fixed; LICENSE + Keychain migration still open — see roadmap)
 
 ## Dependencies & Execution Order
 

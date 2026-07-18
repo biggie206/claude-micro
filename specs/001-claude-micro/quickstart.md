@@ -33,7 +33,9 @@ open ClaudeMicro.xcodeproj
 
 Set your signing team on all three targets, plug in the iPhone, Run `ClaudeMicro`.
 In the app's Settings tab enter `ws://<mac-lan-ip>:8787/ws` + token (also set
-`bind` in the server config to `0.0.0.0` or your LAN/Tailscale IP for non-localhost use).
+`bind` in the server config to your **specific LAN or Tailscale IP** — never `0.0.0.0`;
+Constitution V requires loopback/Tailscale-scoped binding. On a plain LAN the token
+travels in cleartext, so prefer Tailscale, which encrypts the link, when in doubt).
 Then Run the `ClaudeMicroWatch` scheme on the paired Ultra 2.
 
 ## 3. Action button (watchOS 11+)
