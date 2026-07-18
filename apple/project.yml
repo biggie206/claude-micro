@@ -1,0 +1,58 @@
+# XcodeGen manifest — run `xcodegen` in this directory to produce ClaudeMicro.xcodeproj
+name: ClaudeMicro
+options:
+  bundleIdPrefix: com.tomnguyen.claudemicro
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    DEVELOPMENT_TEAM: ""   # set your Apple Developer team ID
+
+targets:
+  ClaudeMicro:
+    type: application
+    platform: iOS
+    sources: [Shared, iOS]
+    info:
+      path: iOS/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: "Push-to-talk voice prompts for your Claude sessions."
+        NSSpeechRecognitionUsageDescription: "Transcribes your voice prompts on-device before sending them to your Mac."
+        UIBackgroundModes: [audio]
+    dependencies:
+      - target: ClaudeMicroWatch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tomnguyen.claudemicro.app
+        TARGETED_DEVICE_FAMILY: "1"
+
+  ClaudeMicroWatch:
+    type: application
+    platform: watchOS
+    sources: [Shared, WatchApp]
+    info:
+      path: WatchApp/Info.plist
+      properties:
+        WKCompanionAppBundleIdentifier: com.tomnguyen.claudemicro.app
+        WKRunsIndependentlyOfCompanionApp: false
+    dependencies:
+      - target: ClaudeMicroWatchWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tomnguyen.claudemicro.app.watchkitapp
+
+  ClaudeMicroWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources: [Shared/Models.swift, WatchWidget]
+    info:
+      path: WatchWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tomnguyen.claudemicro.app.watchkitapp.widget

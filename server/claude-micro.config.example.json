@@ -1,0 +1,15 @@
+{
+  "token": "REPLACE-WITH-LONG-RANDOM-STRING",
+  "bind": "127.0.0.1",
+  "port": 8787,
+  "defaultDepth": 2,
+  "projects": [
+    { "id": "kbapp", "name": "LLM keyboard app", "cwd": "/Users/tom/code/llm-keyboard-app" }
+  ],
+  "skills": {
+    "up":    { "label": "Review",  "prompt": "Review the current diff and summarize risks in 5 bullets." },
+    "down":  { "label": "Commit",  "prompt": "Stage and commit the current work with a good message." },
+    "left":  { "label": "Explain", "prompt": "Explain the last error and the fix you'd apply." },
+    "right": { "label": "Test",    "prompt": "Run the test suite and fix any failures." }
+  }
+}
