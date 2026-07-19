@@ -52,7 +52,7 @@
 - [x] T023 [US2] iOS `apple/iOS/PTTController.swift` SFSpeechRecognizer hold-to-talk with live partials
 - [x] T024 [P] [US2] iOS PTT key (hold gesture, waveform/partial display) in ControlPadView
 - [x] T025 [P] [US2] Watch dictation via TextFieldLink → `prompt` in WatchControlView
-- [ ] T026 [US2] Empty-transcript guard test (AS-3) on device — watch dictation path (phone PTT retired by bridge refactor)
+- [x] T026 [US2] Empty-transcript guard test (AS-3) on device — watch dictation path (2026-07-19: spoken dictation delivered as prompt + turn started, observer-verified; empty cancel produced zero events ✓)
 
 ## Phase 5: User Story 3 — Thinking-depth dial (Priority: P3)
 
@@ -98,6 +98,16 @@
 - [x] T058 **BUG FIXED** (2026-07-19) Watch UI froze while foregrounded — root cause: state arrived only via updateApplicationContext, which watchOS defers for foregrounded apps. Fix: WatchRelay also sends full state over sendMessage when reachable; PhoneLink ingests it. Verified on device (live counter 5→13, haptic via sendMessage). Commit a94dc48.
 - [ ] T059 Aggregate-status UX: one errored background session paints the watch red until re-touched (observed on device); consider error decay or active-session weighting in `AppState.overallStatus` / watch `overall`
 - [ ] T060 Action-button App Shortcut not appearing in watchOS Shortcut picker after install; add explicit `ClaudeMicroShortcuts.updateAppShortcutParameters()` on watch app launch and re-verify (unblocks T040)
+- [ ] T062 [Tier0] **BUG** Alert mis-targeting: notifications built from `activePending`, not the triggering request — cross-session approvals can resolve the wrong request (QA#1). Thread request identity through pushState/notify; per-session threadIdentifier; project name in title (FR-022)
+- [ ] T063 [Tier0] Watch→phone command loss when phone suspended: route approve/deny/prompt via transferUserInfo queue with sendMessage fast path + errorHandler (watchOS#7)
+- [ ] T064 [Tier1] Haptic delivery per FR-023: errorHandler + transferUserInfo fallback + eventId de-dup; stash (context, haptic) across activation race; error status transitions emit error signal (watchOS#1/1b/2, QA#3)
+- [ ] T065 [Tier1] Watch-side time-sensitive local notifications + watch notification permission request (watchOS#3; APNs completion remains T043)
+- [ ] T066 [Tier1] projectName across bridge (context sessions+pending), watch pending card label, complication driven by status-causing session + writtenAt staleness aging (watchOS#5/6; Constitution VI)
+- [ ] T067 [Tier2] `test_stimulus` command (loopback+testHooks-gated) to synthesize permission/risky/error/complete events — unblocks repeatable SC-001/003/004 protocols (QA#2)
+- [ ] T068 [Tier2] `close_session` eviction + exclude error-terminal transcripts from boot resume re-listing (QA#4; supersedes part of T059 handling)
+- [ ] T069 [Tier2] Multi-session status aggregation semantics (active-session weighting / background-error decay) — resolves T059 (QA#5)
+- [ ] T070 [Tier2] test-protocol.md per SC + honest SC ledger (SC-001 watch-half unmeasured; SC-002/004/005 open) (QA#6/7)
+- [ ] T071 [Tier2] scripts/deploy.sh with tunnel-staleness preflight; CI config-drift lint (dylib pin, bundle chain, app-group); toolchain pinning (Xcode persona #2/3/4/8)
 - [ ] T061 [Sec] One-time pairing codes: `--pair` should mint a short-lived code exchanged for the real token on first connect, instead of embedding the permanent token in the QR (2026-07-18 security re-review, low)
 - [x] T055 [Setup] QR pairing (FR-020): server `--pair` QR emitter (pairHost/LAN detection) + iOS VisionKit scanner in Settings, `claudemicro://pair` parsing (2026-07-18: `npm run pair` renders QR live w/ Tailscale IP auto-detect; scan flow needs device camera)
 

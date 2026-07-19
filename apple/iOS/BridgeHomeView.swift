@@ -147,6 +147,9 @@ struct PermissionSection: View {
 
     var body: some View {
         Section("Pending approval") {
+            // FR-022: name the originating session so the user knows which chat this is.
+            Text(state.projectName(forSession: request.sessionId))
+                .font(.caption.bold()).textCase(.uppercase).foregroundStyle(.secondary)
             Label(request.toolName, systemImage: request.risky ? "exclamationmark.triangle.fill" : "hand.raised.fill")
                 .font(.headline)
                 .foregroundStyle(request.riskTint)

@@ -9,6 +9,10 @@ settings:
   base:
     SWIFT_VERSION: "5.10"
     DEVELOPMENT_TEAM: S4XWNBC3N9   # Tom Nguyen (Personal Team)
+    CODE_SIGN_STYLE: Automatic
+    # Xcode 16+ defaults this to YES; the debug-dylib stub hides App Intents metadata
+    # from the system indexer (App Shortcut never appears) — keep it OFF for device truth.
+    ENABLE_DEBUG_DYLIB: "NO"
 
 targets:
   ClaudeMicro:

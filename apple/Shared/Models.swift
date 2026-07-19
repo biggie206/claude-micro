@@ -76,11 +76,18 @@ enum ComplicationState {
         UserDefaults(suiteName: "group.com.tomnguyen.claudemicro") ?? .standard
     }
     static func write(overall: String, stale: Bool, activeProject: String) {
-        defaults.set(["overall": overall, "stale": stale, "project": activeProject], forKey: key)
+        defaults.set(["overall": overall, "stale": stale, "project": activeProject,
+                      "writtenAt": Date().timeIntervalSince1970], forKey: key)
     }
-    static func read() -> (overall: String, stale: Bool, project: String) {
+    /// Constitution VI: entries age — a complication with no fresh write must show stale,
+    /// never last-known status as live.
+    static func read(maxAge: TimeInterval = 20 * 60) -> (overall: String, stale: Bool, project: String) {
         let d = defaults.dictionary(forKey: key) ?? [:]
-        return (d["overall"] as? String ?? "idle", d["stale"] as? Bool ?? true, d["project"] as? String ?? "")
+        let writtenAt = d["writtenAt"] as? TimeInterval ?? 0
+        let aged = Date().timeIntervalSince1970 - writtenAt > maxAge
+        return (d["overall"] as? String ?? "idle",
+                (d["stale"] as? Bool ?? true) || aged,
+                d["project"] as? String ?? "")
     }
 }
 

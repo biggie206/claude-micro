@@ -241,6 +241,23 @@ the phone, verify subsequent PTT/approve actions route to the newly active sessi
 - **FR-020**: The server MUST be able to emit a pairing QR code (`--pair` /
   `npm run pair`) encoding `claudemicro://pair?url=…&token=…`, and the iPhone app MUST
   be able to scan it to configure the connection — replacing manual URL/token entry.
+- **FR-022**: Session provenance on every alert surface: notifications, the watch pending
+  card, and the phone pending card MUST identify the originating session (project name)
+  so the user always knows *which chat* they are approving. Alerts MUST be constructed
+  from the request that triggered them — never from "current active pending" — and
+  approve/deny actions MUST resolve exactly that request. Concurrent sessions' alerts
+  MUST thread separately (per-session notification threads).
+- **FR-023**: Alert delivery semantics (honest tiers): when the watch app is
+  foreground-reachable, events deliver via the low-latency message channel with an error
+  handler; on failure or unreachability they MUST fall back to the queued
+  `transferUserInfo` channel (guaranteed *eventual*, not prompt). Watch-side
+  time-sensitive local notifications cover the near-background case. Duplicate delivery
+  across channels MUST be de-duplicated by event id (at most one haptic per event). The
+  fully-suspended-watch + unlocked-phone case is closable only by APNs (T043) and MUST
+  NOT be described as covered. Error *status transitions* produce an error signal, not
+  only error turn-results. SC-004's three-pattern distinguishability applies only to the
+  foreground-reachable channel; notification-path delivery collapses to the system
+  notification haptic by platform design.
 - **FR-021**: Liveness & lifecycle: the server MUST ping connected sockets and cull
   peers that miss a pong (no zombie broadcasts); on SIGINT/SIGTERM it MUST interrupt
   running turns, notify clients (`shutting_down`), and close sockets cleanly; on boot

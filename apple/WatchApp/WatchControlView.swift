@@ -10,6 +10,7 @@ extension PhoneLink.WatchPending {
 
 struct WatchControlView: View {
     @ObservedObject var link = PhoneLink.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var crownDepth: Double = 2
     @State private var depthDebounce: Task<Void, Never>?
     /// Set by PrimaryActionIntent when the Action button is pressed with nothing pending.
@@ -53,7 +54,10 @@ struct WatchControlView: View {
                 }
             }
             .onChange(of: link.depth) { _, newValue in crownDepth = Double(newValue) }
-            .onAppear { crownDepth = Double(link.depth) }
+            .onAppear { crownDepth = Double(link.depth); link.refresh() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { link.refresh() }   // wrist raised → catch up immediately
+            }
             .onReceive(NotificationCenter.default.publisher(for: .openDictation)) { _ in
                 withAnimation(.easeInOut(duration: 0.4).repeatCount(4)) { highlightSpeak = true }
                 Task { try? await Task.sleep(for: .seconds(2)); highlightSpeak = false }
@@ -79,6 +83,9 @@ struct WatchControlView: View {
 
     private func pendingView(_ p: PhoneLink.WatchPending) -> some View {
         VStack(spacing: 6) {
+            // FR-022: always name which chat/session this gate belongs to.
+            Text(p.projectName).font(.system(size: 10, weight: .semibold)).tracking(0.5)
+                .foregroundStyle(.secondary).textCase(.uppercase)
             Text(p.toolName).font(.headline).foregroundStyle(p.riskTint)
             Text(p.summary).font(.system(size: 12, design: .monospaced)).lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -146,7 +153,7 @@ struct WatchControlView: View {
             } label: {
                 HStack {
                     Circle().fill((SessionStatus(rawValue: s.status) ?? .idle).color).frame(width: 8, height: 8)
-                    Text(s.projectId).font(.system(size: 13))
+                    Text(s.projectName).font(.system(size: 13))
                     Spacer()
                     if s.id == link.activeSessionId { Image(systemName: "checkmark") }
                 }

@@ -49,6 +49,10 @@ final class ServerConnection: ObservableObject {
         self.state = state
         self.relay = relay
         relay.onCommand = { [weak self] cmd in self?.send(cmd) }   // watch → phone → server
+        relay.onRefresh = { [weak self] in                          // watch foregrounded → catch it up
+            guard let self else { return }
+            self.relay.pushState(self.state, alert: nil)
+        }
         // One-time migration from the pre-Keychain UserDefaults slot. Only delete the
         // legacy copy once the Keychain round-trips — SecItemAdd can fail silently
         // (e.g. before first unlock) and the legacy slot is the sole durable copy.
@@ -129,11 +133,11 @@ final class ServerConnection: ObservableObject {
                     if let data = Self.data(from: message),
                        let event = try? JSONDecoder().decode(ServerEvent.self, from: data) {
                         if case .snapshot = event { self.flushOutbox() }   // authed + converged
-                        let haptic = self.state.apply(event)
+                        let alert = self.state.apply(event)
                         // SC-005: only state transitions reach the watch — assistant_delta
                         // fires per streamed token but never changes watch-visible state.
-                        if haptic != nil || Self.watchRelevant(event) {
-                            self.relay.pushState(self.state, haptic: haptic)
+                        if alert != nil || Self.watchRelevant(event) {
+                            self.relay.pushState(self.state, alert: alert)
                         }
                         if case let .serverError(code, message, _) = event {
                             self.lastError = "\(code): \(message)"
@@ -149,7 +153,7 @@ final class ServerConnection: ObservableObject {
         guard !reconnectScheduled else { return }   // one reconnect in flight at a time
         reconnectScheduled = true
         state.markDisconnected()
-        relay.pushState(state, haptic: nil)
+        relay.pushState(state, alert: nil)
         lastError = error.localizedDescription
         pingTimer?.invalidate()
         reconnectAttempt += 1
