@@ -111,14 +111,22 @@ extension PhoneLink: WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         // Instant haptic channel (US4): phone mirrors haptic-worthy events while we're reachable.
-        guard let haptic = message["haptic"] as? String else { return }
-        Task { @MainActor in
-            switch haptic {
-            case "needsInput": WKInterfaceDevice.current().play(.notification)
-            case "complete": WKInterfaceDevice.current().play(.success)
-            case "error": WKInterfaceDevice.current().play(.failure)
-            default: break
+        if let haptic = message["haptic"] as? String {
+            Task { @MainActor in
+                switch haptic {
+                case "needsInput": WKInterfaceDevice.current().play(.notification)
+                case "complete": WKInterfaceDevice.current().play(.success)
+                case "error": WKInterfaceDevice.current().play(.failure)
+                default: break
+                }
             }
+        }
+        // T058 fix: full state also arrives via sendMessage — the reliable real-time
+        // channel while foregrounded (updateApplicationContext is deferred/coalesced by
+        // watchOS and does not refresh a live UI promptly).
+        // (haptic, if any, already played by the branch above — this carries the same message)
+        if message["state"] != nil {
+            Task { @MainActor in self.ingest(message) }
         }
     }
 }

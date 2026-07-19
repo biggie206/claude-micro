@@ -47,14 +47,18 @@ final class WatchRelay: NSObject, WCSessionDelegate {
         // SC-005: callers gate on watch-relevant events (ServerConnection.watchRelevant),
         // so this only runs on real state transitions — latest-wins, background-safe.
         pendingContext = nil
-        try? WCSession.default.updateApplicationContext(Self.context(for: state))
+        var context = Self.context(for: state)
+        try? WCSession.default.updateApplicationContext(context)
 
-        if let haptic {
-            if WCSession.default.isReachable {
-                WCSession.default.sendMessage(["haptic": String(describing: haptic)], replyHandler: nil)
-            } else {
-                notify(for: haptic, state: state)   // background watch → notification mirrors to wrist
-            }
+        // T058: application context is deferred/coalesced while the watch app is
+        // foregrounded, so a live watch UI would freeze. When the watch is reachable,
+        // also deliver the same state over sendMessage — the prompt real-time channel.
+        if WCSession.default.isReachable {
+            context["state"] = true
+            if let haptic { context["haptic"] = String(describing: haptic) }
+            WCSession.default.sendMessage(context, replyHandler: nil)
+        } else if let haptic {
+            notify(for: haptic, state: state)   // background watch → notification mirrors to wrist
         }
     }
 
